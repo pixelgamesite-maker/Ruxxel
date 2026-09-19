@@ -1,39 +1,30 @@
-import { Router as WouterRouter, Route, Switch } from "wouter";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import Home from "@/pages/home";
+import { Route, Switch } from "wouter";
+import AppBar from "@/components/layout/AppBar";
+import TabBar from "@/components/layout/TabBar";
+import ScrollToTop from "@/components/layout/ScrollToTop";
+import Home from "@/pages/Home";
+import Lab from "@/pages/Lab";
+import Crew from "@/pages/Crew";
+import Mint from "@/pages/Mint";
+import Peek from "@/pages/Peek";
+import NotFound from "@/pages/NotFound";
 
-function App() {
+export default function App() {
   return (
-    <div className="dark">
-      <TooltipProvider>
-        <WouterRouter>
-          <Switch>
-            <Route path="/" component={Home} />
-            <Route>
-              <div
-                style={{
-                  background: "#050504",
-                  width: "100vw",
-                  height: "100vh",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontFamily: "'Cormorant Garamond', Georgia, serif",
-                  fontWeight: 700,
-                  fontSize: "2rem",
-                  color: "#c9a84c",
-                }}
-              >
-                404 — NOT FOUND
-              </div>
-            </Route>
-          </Switch>
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </div>
+    <>
+      <ScrollToTop />
+      <AppBar />
+      <main className="app">
+        <Switch>
+          <Route path="/" component={Home} />
+          <Route path="/lab" component={Lab} />
+          <Route path="/crew" component={Crew} />
+          <Route path="/mint" component={Mint} />
+          <Route path="/peek" component={Peek} />
+          <Route component={NotFound} />
+        </Switch>
+      </main>
+      <TabBar />
+    </>
   );
 }
-
-export default App;
