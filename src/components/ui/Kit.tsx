@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { LOGO } from "@/data/site";
+import { LOGO_CANDIDATES } from "@/data/site";
 
 /* ------------------------------------------------------------------ mark -- */
 
@@ -14,24 +14,24 @@ export function Mark({ size = 26, color = "#06210f" }: { size?: number; color?: 
   );
 }
 
-/** Brand tile. Uses /public/logo.jpg, falls back to the drawn mark if it is missing. */
-export function Logo({ size = 46, radius = 14 }: { size?: number; radius?: number }) {
-  const [failed, setFailed] = useState(false);
+/** Brand tile. Tries each logo filename in turn, falls back to the drawn mark. */
+export function Logo({ size = 42, radius = 13 }: { size?: number; radius?: number }) {
+  const [attempt, setAttempt] = useState(0);
+  const src = LOGO_CANDIDATES[attempt];
+
   return (
-    <span
-      className={`logo ${failed ? "" : "logo--img"}`}
-      style={{ width: size, height: size, borderRadius: radius }}
-    >
-      {failed ? (
-        <Mark size={Math.round(size * 0.56)} />
+    <span className="logo" style={{ width: size, height: size, borderRadius: radius }}>
+      {src ? (
+        <img src={src} alt="" onError={() => setAttempt((a) => a + 1)} />
       ) : (
-        <img src={LOGO} alt="" onError={() => setFailed(true)} />
+        <Mark size={Math.round(size * 0.54)} color="var(--green)" />
       )}
     </span>
   );
 }
 
-export function XIcon({ size = 14 }: { size?: number }) {  return (
+export function XIcon({ size = 14 }: { size?: number }) {
+  return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.259 5.63L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77z" />
     </svg>
@@ -147,5 +147,19 @@ export function Sparkline({
         vectorEffect="non-scaling-stroke"
       />
     </svg>
+  );
+}
+
+/** Compact market strip. Reads whatever you pass it, so it works with live data too. */
+export function Ticker({ items }: { items: { symbol: string; value: string; dir: number }[] }) {
+  return (
+    <div className="ticker" role="list" aria-label="Market snapshot">
+      {items.map((i) => (
+        <div className="ticker__i" key={i.symbol} role="listitem">
+          <span className="ticker__s">{i.symbol}</span>
+          <span className={`ticker__v ${i.dir > 0 ? "up" : i.dir < 0 ? "down" : ""}`}>{i.value}</span>
+        </div>
+      ))}
+    </div>
   );
 }
