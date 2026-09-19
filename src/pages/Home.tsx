@@ -1,58 +1,49 @@
-import { useState } from "react";
 import { Link } from "wouter";
-import { BRAND, COLLECTION, DISCLAIMER, FAQS, LAB_CARDS, MOTION, PIXELS, ROADMAP, STEPS } from "@/data/site";
+import { BRAND, COLLECTION, DISCLAIMER, LAB_CARDS, MOTION, PIXELS, ROADMAP, STEPS } from "@/data/site";
 import { CREW } from "@/data/crew";
-import { CardArt, Pixel, Section, XIcon } from "@/components/ui/Kit";
+import { ASSETS } from "@/data/assets";
+import { pct, price } from "@/lib/format";
+import { CardArt, Pixel, Section, Ticker, XIcon } from "@/components/ui/Kit";
 
 export default function Home() {
-  const [open, setOpen] = useState<number | null>(0);
+  const ticker = ASSETS.slice(0, 5).map((a) => ({
+    symbol: a.symbol,
+    value: `${price(a.price)}  ${pct(a.change24h)}`,
+    dir: a.change24h,
+  }));
 
   return (
     <>
-      <div className="block">
+      <section className="block">
+        <span className="mono">Genesis · {COLLECTION.chain}</span>
         <h1>
-          1,970 Ruxxells.
+          Your research crew
           <br />
-          One Lab.
-          <br />
-          Real Research.
+          for the <em>onchain economy</em>.
         </h1>
-        <span className="mono">The genesis collection</span>
         <p>
-          A crew of pixel researchers living on {COLLECTION.chain}. They read tokenized stocks,
-          treasuries, gold and funds all day, then tell you what moved and why in plain words.
+          {COLLECTION.supplyLabel} pixel researchers reading tokenized stocks, treasuries, gold and
+          funds around the clock, then telling you what moved and why in plain words.
         </p>
 
-        <div className="block__art">
-          <Pixel src={MOTION[0]} alt="The lab" label="ruxxel1.gif" />
-          <Pixel src={MOTION[1]} alt="The lab" label="ruxxel2.gif" />
-        </div>
-
         <div className="block__cta">
-          <Link href="/mint" className="btn-dark">
-            Join the list
+          <Link href="/mint" className="btn">
+            Join the access list
           </Link>
-          <Link href="/lab" className="btn-out">
+          <Link href="/lab" className="btn btn--ghost">
             Open the lab
           </Link>
         </div>
-      </div>
 
-      <div className="strip-row" style={{ marginTop: 14 }}>
-        <span className="logo" style={{ width: 34, height: 34, borderRadius: 11 }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="#06210f" aria-hidden="true">
-            <path d="M12 2c1.6 4.5 4.6 7.2 9 8.4-4.4 1.3-7.4 4-9 8.4-1.6-4.4-4.6-7.1-9-8.4 4.4-1.2 7.4-3.9 9-8.4Z" />
-          </svg>
-        </span>
-        <span>
-          <b style={{ display: "block", fontSize: "0.95rem" }}>{COLLECTION.chain}</b>
-          <span className="mono" style={{ color: "var(--faint)" }}>
-            {COLLECTION.status}
-          </span>
-        </span>
-      </div>
+        <div className="block__art">
+          <Pixel src={MOTION[0]} alt="Inside the lab" label="ruxxells1.gif" />
+          <Pixel src={MOTION[1]} alt="Inside the lab" label="ruxxells2.gif" />
+        </div>
+      </section>
 
-      <div className="stats">
+      <Ticker items={ticker} />
+
+      <div className="stats" style={{ marginTop: 16 }}>
         <div className="stat">
           <b>{COLLECTION.supplyLabel}</b>
           <span>Supply</span>
@@ -67,31 +58,31 @@ export default function Home() {
         </div>
       </div>
 
-      <Section title="The Lab" meta="Try it now">
-        <div className="hscroll">
+      <Section title="What the lab does" meta="Four tools">
+        <div className="grid-2">
           {LAB_CARDS.map((c) => (
             <Link key={c.id} href="/lab" className="card" data-tone={c.tone}>
               <CardArt src={c.art} alt={c.name} pill={c.status} />
               <div className="card__body">
                 <h3>{c.name}</h3>
                 <p>{c.blurb}</p>
-                <span className="card__link">Open in the lab</span>
+                <span className="card__link">Open</span>
               </div>
             </Link>
           ))}
         </div>
       </Section>
 
-      <Section title="Meet the crew" meta={`${CREW.length} roles`}>
+      <Section title="The crew" meta={`${CREW.length} roles`}>
         <div className="hscroll hscroll--sm">
           {CREW.map((m) => (
-            <Link key={m.id} href="/crew" style={{ display: "grid", gap: 8, alignContent: "start" }}>
+            <Link key={m.id} href="/crew" style={{ display: "grid", gap: 10, alignContent: "start" }}>
               <Pixel src={m.img} alt={m.name} label={m.role} />
               <span>
                 <span className="tag" data-tone={m.tone}>
                   {m.role}
                 </span>
-                <b style={{ display: "block", fontSize: "0.88rem" }}>{m.name}</b>
+                <b style={{ display: "block", fontSize: "0.9rem", fontWeight: 500 }}>{m.name}</b>
               </span>
             </Link>
           ))}
@@ -103,16 +94,16 @@ export default function Home() {
           <div className="strip-row" key={s.k}>
             <span className="step__n">{i + 1}</span>
             <span>
-              <b style={{ display: "block", fontSize: "0.95rem" }}>{s.k}</b>
-              <span style={{ color: "var(--faint)", fontSize: "0.84rem" }}>{s.d}</span>
+              <b style={{ display: "block", fontSize: "0.96rem", fontWeight: 500 }}>{s.k}</b>
+              <span style={{ color: "var(--faint)", fontSize: "0.85rem" }}>{s.d}</span>
             </span>
           </div>
         ))}
       </Section>
 
-      <Section title="Sneak peek" meta="See all">
+      <Section title="Unrevealed" meta="Gallery">
         <div className="hscroll hscroll--sm">
-          {PIXELS.slice(0, 10).map((src, i) => (
+          {PIXELS.slice(0, 12).map((src, i) => (
             <Link key={src} href="/peek">
               <Pixel src={src} alt={`Ruxxell ${i + 1}`} label={`#${i + 1}`} />
             </Link>
@@ -120,11 +111,11 @@ export default function Home() {
         </div>
       </Section>
 
-      <Section title="What is coming" meta="Roadmap">
+      <Section title="The plan" meta="Roadmap">
         <div className="timeline">
           {ROADMAP.map((p) => (
             <div className="phase" key={p.t}>
-              <span className="mono" style={{ color: "var(--rh)" }}>
+              <span className="mono" style={{ color: "var(--green)" }}>
                 {p.k}
               </span>
               <b>{p.t}</b>
@@ -134,34 +125,23 @@ export default function Home() {
         </div>
       </Section>
 
-      <Section title="Questions" meta={`${FAQS.length} answers`}>
-        <div className="faq">
-          {FAQS.map((f, i) => (
-            <div className="faq__i" key={f.q}>
-              <button className="faq__q" onClick={() => setOpen(open === i ? null : i)} aria-expanded={open === i}>
-                {f.q}
-                <span style={{ color: "var(--rh)" }}>{open === i ? "−" : "+"}</span>
-              </button>
-              {open === i && <p className="faq__a">{f.a}</p>}
-            </div>
-          ))}
+      <section className="block" style={{ marginTop: 46 }}>
+        <span className="mono">Access list open</span>
+        <h1 style={{ fontSize: "clamp(1.8rem, 4vw, 2.8rem)" }}>
+          {COLLECTION.supplyLabel} passes.
+          <br />
+          One per wallet.
+        </h1>
+        <p>Four steps, reviewed by hand. Mint price and date land first on {BRAND.handle}.</p>
+        <div className="block__cta">
+          <Link href="/mint" className="btn">
+            Apply now
+          </Link>
+          <a className="btn btn--ghost" href={BRAND.x} target="_blank" rel="noopener noreferrer">
+            <XIcon /> Follow
+          </a>
         </div>
-      </Section>
-
-      <div style={{ padding: "22px 16px 0", display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <Link href="/mint" className="btn">
-          Join the access list
-        </Link>
-        <a
-          className="btn btn--ghost"
-          href={BRAND.x}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
-        >
-          <XIcon /> {BRAND.handle}
-        </a>
-      </div>
+      </section>
 
       <p className="disclaimer">{DISCLAIMER}</p>
     </>
