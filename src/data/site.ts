@@ -16,9 +16,21 @@ export const COLLECTION = {
   status: "Contract not yet deployed",
 };
 
-/** Pixel art lives in /public as ruxxel1.png ... ruxxel20.png */
-export const PIXELS = Array.from({ length: 20 }, (_, i) => `/ruxxel${i + 1}.png`);
-export const MOTION = ["/ruxxel1.gif", "/ruxxel2.gif"];
+/**
+ * Artwork lives in /public. Filenames are built from these three constants, so
+ * renaming the files only means editing here.
+ *   ruxxells1.jpeg ... ruxxells20.jpeg
+ */
+const ART_NAME = "ruxxells";
+const ART_EXT = "jpeg";
+export const ART_COUNT = 20;
+
+export const PIXELS = Array.from({ length: ART_COUNT }, (_, i) => `/${ART_NAME}${i + 1}.${ART_EXT}`);
+
+/** Animated clips. Change the extension here if yours are named differently. */
+export const MOTION = [`/${ART_NAME}1.gif`, `/${ART_NAME}2.gif`];
+
+export const LOGO = "/logo.jpg";
 
 /** The Lab, presented like an app's product shelf. */
 export const LAB_CARDS = [
@@ -26,7 +38,7 @@ export const LAB_CARDS = [
     id: "assets",
     name: "Asset Files",
     tone: "green",
-    art: "/ruxxel6.png",
+    art: PIXELS[5],
     status: "Try it",
     blurb: "Every tokenized asset, opened up. Price, risk, flows, and what actually moved it.",
   },
@@ -34,7 +46,7 @@ export const LAB_CARDS = [
     id: "compare",
     name: "Face Off",
     tone: "cyan",
-    art: "/ruxxel7.png",
+    art: PIXELS[6],
     status: "Try it",
     blurb: "Four assets, one axis. Rebased so a $2,400 gold token and a $100 note line up.",
   },
@@ -42,7 +54,7 @@ export const LAB_CARDS = [
     id: "portfolio",
     name: "War Room",
     tone: "pink",
-    art: "/ruxxel8.png",
+    art: PIXELS[7],
     status: "Try it",
     blurb: "Your whole bag in one view. Overlap, concentration, and what is really driving risk.",
   },
@@ -50,7 +62,7 @@ export const LAB_CARDS = [
     id: "alerts",
     name: "The Siren",
     tone: "orange",
-    art: "/ruxxel9.png",
+    art: PIXELS[8],
     status: "Try it",
     blurb: "Tell the crew what matters. They shout when it happens and stay quiet when it does not.",
   },
