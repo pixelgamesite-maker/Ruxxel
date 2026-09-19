@@ -30,7 +30,9 @@ export const PIXELS = Array.from({ length: ART_COUNT }, (_, i) => `/${ART_NAME}$
 /** Animated clips. Change the extension here if yours are named differently. */
 export const MOTION = [`/${ART_NAME}1.gif`, `/${ART_NAME}2.gif`];
 
-export const LOGO = "/logo.jpg";
+/** Logo file in /public. The first one that loads wins, so .jpg/.png/.jpeg all work. */
+export const LOGO_CANDIDATES = ["/logo.jpg", "/logo.png", "/logo.jpeg"];
+export const LOGO = LOGO_CANDIDATES[0];
 
 /** The Lab, presented like an app's product shelf. */
 export const LAB_CARDS = [
@@ -82,29 +84,6 @@ export const ROADMAP = [
   { k: "After", t: "Reveal", d: "Roles, worlds and traits go live. Your crew shapes your lab." },
   { k: "Later", t: "Ask anything", d: "Plain language questions, answered from real market and chain data." },
   { k: "Eventually", t: "The whole chain", d: "Coverage grows as fast as things get tokenized." },
-];
-
-export const FAQS = [
-  {
-    q: "So what is this?",
-    a: "An NFT collection that is also a research app. 1,970 Ruxxells, each one a researcher with a job. Hold one, get the full lab.",
-  },
-  {
-    q: "What does the lab actually do?",
-    a: "It reads tokenized real-world assets - stocks, treasuries, gold, funds - and tells you what moved, why, and what it means for the rest of your bag.",
-  },
-  { q: "What is the supply?", a: `${COLLECTION.supplyLabel}. That is it, forever.` },
-  { q: "Mint price?", a: "TBA. Get on the access list and you will hear it first." },
-  { q: "Which chain?", a: `${COLLECTION.chain}.` },
-  {
-    q: "Do I need one to use the lab?",
-    a: "Basic research stays open. Holders get unlimited alerts, the war room, full history and a vote on what gets covered next.",
-  },
-  { q: "How do I get on the list?", a: "Four steps on the Mint tab. Applications are reviewed, not first come first served." },
-  {
-    q: "Is this financial advice?",
-    a: "Absolutely not. The crew explains what the data shows. What you do next is on you.",
-  },
 ];
 
 export const DISCLAIMER =
