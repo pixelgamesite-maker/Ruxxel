@@ -1,30 +1,39 @@
 import { Link, useLocation } from "wouter";
-import { Mark } from "@/components/ui/Kit";
+import { BRAND, COLLECTION } from "@/data/site";
+import { Logo } from "@/components/ui/Kit";
 
-const TITLES: Record<string, [string, string]> = {
-  "/": ["Ruxxells", "1,970 on Robinhood Chain"],
-  "/lab": ["The Lab", "Where the crew works"],
-  "/crew": ["The Crew", "Five jobs, one collection"],
-  "/mint": ["Mint", "Access list is open"],
-  "/peek": ["Sneak peek", "Straight from the lab"],
-};
+const NAV = [
+  { href: "/lab", label: "Lab" },
+  { href: "/crew", label: "Crew" },
+  { href: "/peek", label: "Gallery" },
+];
 
 export default function AppBar() {
   const [path] = useLocation();
-  const [title, sub] = TITLES[path] ?? ["Ruxxells", "Onchain research crew"];
 
   return (
     <header className="appbar">
       <div className="appbar__in">
-        <Link href="/" className="logo" aria-label="Ruxxells home">
-          <Mark size={26} />
+        <Link href="/" className="brand" aria-label="Ruxxells home">
+          <Logo />
+          <span>
+            <span className="brand__n">{BRAND.name}</span>
+            <span className="brand__s mono">
+              {COLLECTION.supplyLabel} · {COLLECTION.chain}
+            </span>
+          </span>
         </Link>
-        <div>
-          <div className="appbar__t">{title}</div>
-          <span className="appbar__s mono">{sub}</span>
-        </div>
+
+        <nav className="nav" aria-label="Primary">
+          {NAV.map((n) => (
+            <Link key={n.href} href={n.href} aria-current={path === n.href ? "page" : undefined}>
+              {n.label}
+            </Link>
+          ))}
+        </nav>
+
         <Link href="/mint" className="join">
-          JOIN
+          Join
         </Link>
       </div>
     </header>
