@@ -92,16 +92,6 @@ export default function Home() {
         ))}
       </Section>
 
-      <Section title="Unrevealed" meta="Gallery">
-        <div className="hscroll hscroll--sm">
-          {PIXELS.slice(0, 12).map((src, i) => (
-            <Link key={src} href="/peek">
-              <Pixel src={src} alt={`Ruxxell ${i + 1}`} label={`#${i + 1}`} />
-            </Link>
-          ))}
-        </div>
-      </Section>
-
       <Section title="The plan" meta="Roadmap">
         <div className="timeline">
           {ROADMAP.map((p) => (
