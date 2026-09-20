@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { BRAND, COLLECTION, DISCLAIMER, NAV } from "@/data/site";
+import { BRAND, COLLECTION, NAV } from "@/data/site";
 import { Logo, XIcon } from "@/components/ui/Kit";
 
 export default function Footer() {
@@ -8,51 +8,34 @@ export default function Footer() {
       <div className="ftr__top">
         <div className="ftr__brand">
           <Link href="/" className="brand">
-            <Logo size={46} radius={14} />
-            <span className="brand__n" style={{ fontSize: "1.25rem" }}>
+            <Logo size={38} radius={11} />
+            <span className="brand__n" style={{ fontSize: "1.2rem" }}>
               {BRAND.name}
             </span>
           </Link>
           <p>
-            {COLLECTION.supplyLabel} pixel researchers on {COLLECTION.chain}, reading tokenized
-            real-world assets so you do not have to.
+            {COLLECTION.supplyLabel} pixel researchers on {COLLECTION.chain}, mining $RUX and
+            reading tokenized real-world assets.
           </p>
           <a className="btn btn--sm" href={BRAND.x} target="_blank" rel="noopener noreferrer">
             <XIcon /> {BRAND.handle}
           </a>
         </div>
 
-        <div className="ftr__col">
+        <nav className="ftr__col" aria-label="Footer">
           <h4 className="mono">Explore</h4>
           {NAV.map((n) => (
             <Link key={n.href} href={n.href}>
               {n.label}
             </Link>
           ))}
-        </div>
-
-        <div className="ftr__col">
-          <h4 className="mono">Collection</h4>
-          <span>
-            Supply <b className="num">{COLLECTION.supplyLabel}</b>
-          </span>
-          <span>
-            Mint <b className="num">{COLLECTION.mintPrice}</b>
-          </span>
-          <span>
-            Chain <b className="num">{COLLECTION.chain}</b>
-          </span>
-          <span>
-            Status <b className="num">{COLLECTION.status}</b>
-          </span>
-        </div>
+        </nav>
       </div>
 
-      <p className="disclaimer">{DISCLAIMER}</p>
-
       <div className="ftr__end">
-        <span>© {new Date().getFullYear()} {BRAND.name}</span>
-        <span>Research and education. Never financial advice.</span>
+        <span>
+          © {new Date().getFullYear()} {BRAND.name}
+        </span>
       </div>
     </footer>
   );
