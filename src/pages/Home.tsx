@@ -54,10 +54,10 @@ export default function Home() {
           <b>{COLLECTION.mintPrice}</b>
           <span>Mint price</span>
         </div>
-        <div className="stat">
-          <b>{CREW.length}</b>
-          <span>Roles</span>
-        </div>
+        <a className="stat stat--link" href={BRAND.launchpad} target="_blank" rel="noopener noreferrer">
+          <b>OpenSea</b>
+          <span>Launchpad</span>
+        </a>
       </div>
 
       <Section title="Join a crew to start mining" meta="Live rates">
