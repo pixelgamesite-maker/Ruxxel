@@ -18,7 +18,9 @@ export default function Crew() {
       <Section title="The crew" meta={`${CREW.length} roles`}>
         {CREW.map((m) => (
           <article className="crew-card" key={m.id}>
-            <Pixel src={m.img} alt={m.name} label={m.role} />
+            <div className="crew-card__art">
+              <Pixel src={m.img} alt={m.name} label={m.role} />
+            </div>
             <div className="crew-card__b">
               <span className="tag" data-tone={m.tone}>
                 {m.role} · {m.world}
