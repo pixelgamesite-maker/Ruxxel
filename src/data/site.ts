@@ -27,8 +27,8 @@ export const ART_COUNT = 20;
 
 export const PIXELS = Array.from({ length: ART_COUNT }, (_, i) => `/${ART_NAME}${i + 1}.${ART_EXT}`);
 
-/** Animated clips. Change the extension here if yours are named differently. */
-export const MOTION = [`/${ART_NAME}1.gif`, `/${ART_NAME}2.gif`];
+/** Video loops. Add more filenames here as you export them. */
+export const MOTION = [`/${ART_NAME}1.mp4`];
 
 /** Logo file in /public. The first one that loads wins, so .jpg/.png/.jpeg all work. */
 export const LOGO_CANDIDATES = ["/logo.jpg", "/logo.png", "/logo.jpeg"];
@@ -84,6 +84,14 @@ export const ROADMAP = [
   { k: "After", t: "Reveal", d: "Roles, worlds and traits go live. Your crew shapes your lab." },
   { k: "Later", t: "Ask anything", d: "Plain language questions, answered from real market and chain data." },
   { k: "Eventually", t: "The whole chain", d: "Coverage grows as fast as things get tokenized." },
+];
+
+export const NAV = [
+  { href: "/", label: "Home" },
+  { href: "/lab", label: "The Lab" },
+  { href: "/crew", label: "The Crew" },
+  { href: "/peek", label: "Gallery" },
+  { href: "/mint", label: "Mint" },
 ];
 
 export const DISCLAIMER =
