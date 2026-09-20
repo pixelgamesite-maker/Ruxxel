@@ -1,18 +1,29 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Background pixel ripple. Every tap or click sends a ring of chunky blocks
- * outward on a full-screen canvas sitting behind the page content.
- * Pointer events pass straight through, and it switches itself off for anyone
- * who asked for reduced motion.
+ * Background pixel ripple.
+ *
+ * A single ring of small squares eases outward from each press, dissolving as
+ * it goes. Restrained on purpose: one brand colour per ripple, low alpha, a
+ * short eased life. It should read as the surface reacting, not as confetti.
  */
 
-type Ring = { x: number; y: number; born: number; hue: string };
+type Ring = { x: number; y: number; born: number; tint: [number, number, number] };
 
-const CELL = 14; // block size in px — the chunkier this is, the more retro
-const LIFE = 1100; // ms a ring lives
-const MAX_R = 320; // px the ring travels
-const HUES = ["#22ff7e", "#4fe3ff", "#ff4fd8", "#ffd84f", "#a97bff"];
+const CELL = 9; // square size in px
+const GAP = 1; // px removed from each square, keeps the grid legible
+const LIFE = 900; // ms
+const REACH = 260; // px the ring travels
+const BAND = 26; // thickness of the lit band
+
+/** Brand greens through to violet, kept desaturated so it stays quiet. */
+const TINTS: [number, number, number][] = [
+  [43, 255, 134],
+  [79, 227, 255],
+  [169, 123, 255],
+];
+
+const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
 
 export default function PixelRipple() {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -28,12 +39,12 @@ export default function PixelRipple() {
     const canvas: HTMLCanvasElement = el;
     const ctx: CanvasRenderingContext2D = context;
 
-    let dpr = Math.min(window.devicePixelRatio || 1, 2);
     let rings: Ring[] = [];
     let raf = 0;
+    let index = 0;
 
     function size() {
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = window.innerWidth * dpr;
       canvas.height = window.innerHeight * dpr;
       canvas.style.width = `${window.innerWidth}px`;
@@ -42,8 +53,8 @@ export default function PixelRipple() {
     }
 
     function add(x: number, y: number) {
-      rings.push({ x, y, born: performance.now(), hue: HUES[Math.floor(Math.random() * HUES.length)] });
-      if (rings.length > 6) rings.shift();
+      rings.push({ x, y, born: performance.now(), tint: TINTS[index++ % TINTS.length] });
+      if (rings.length > 4) rings.shift();
       if (!raf) raf = requestAnimationFrame(draw);
     }
 
@@ -52,34 +63,48 @@ export default function PixelRipple() {
       rings = rings.filter((r) => now - r.born < LIFE);
 
       for (const ring of rings) {
-        const t = (now - ring.born) / LIFE; // 0 -> 1
-        const radius = t * MAX_R;
-        const fade = 1 - t;
-        const band = CELL * 2.2;
+        const t = (now - ring.born) / LIFE;
+        const radius = easeOut(t) * REACH;
+        const fade = Math.pow(1 - t, 1.8);
+        const [r, g, b] = ring.tint;
 
-        // walk the bounding box in cell steps, light the cells near the radius
-        const reach = Math.ceil((radius + band) / CELL) * CELL;
-        for (let dx = -reach; dx <= reach; dx += CELL) {
-          for (let dy = -reach; dy <= reach; dy += CELL) {
+        const reach = Math.ceil((radius + BAND) / CELL) * CELL;
+        const left = Math.max(-reach, -ring.x - CELL);
+        const right = Math.min(reach, window.innerWidth - ring.x + CELL);
+        const top = Math.max(-reach, -ring.y - CELL);
+        const bottom = Math.min(reach, window.innerHeight - ring.y + CELL);
+
+        for (let dx = left; dx <= right; dx += CELL) {
+          for (let dy = top; dy <= bottom; dy += CELL) {
             const dist = Math.hypot(dx, dy);
             const edge = Math.abs(dist - radius);
-            if (edge > band) continue;
+            if (edge > BAND) continue;
+
+            // soft falloff across the band, plus a little grain so the ring
+            // dissolves into pixels rather than fading as a solid shape
+            const falloff = Math.pow(1 - edge / BAND, 2);
+            const grain = 0.65 + Math.random() * 0.35;
+            const alpha = falloff * fade * grain * 0.3;
+            if (alpha < 0.012) continue;
 
             const px = Math.floor((ring.x + dx) / CELL) * CELL;
             const py = Math.floor((ring.y + dy) / CELL) * CELL;
-            if (px < -CELL || py < -CELL || px > window.innerWidth || py > window.innerHeight) continue;
 
-            const strength = (1 - edge / band) * fade;
-            if (strength < 0.06) continue;
-
-            ctx.globalAlpha = strength * 0.5;
-            ctx.fillStyle = ring.hue;
-            ctx.fillRect(px, py, CELL - 2, CELL - 2);
+            ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
+            ctx.fillRect(px, py, CELL - GAP, CELL - GAP);
           }
+        }
+
+        // the press itself: a brief bright core that collapses quickly
+        if (t < 0.28) {
+          const core = (1 - t / 0.28) * 0.5;
+          const cx = Math.floor(ring.x / CELL) * CELL;
+          const cy = Math.floor(ring.y / CELL) * CELL;
+          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${core.toFixed(3)})`;
+          ctx.fillRect(cx, cy, CELL - GAP, CELL - GAP);
         }
       }
 
-      ctx.globalAlpha = 1;
       raf = rings.length ? requestAnimationFrame(draw) : 0;
     }
 
