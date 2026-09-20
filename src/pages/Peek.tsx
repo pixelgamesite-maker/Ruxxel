@@ -8,9 +8,9 @@ export default function Peek() {
         <h1>Straight from the lab.</h1>
         <span className="mono">Unrevealed</span>
         <p>Worlds, roles and traits from the genesis collection. No filters, no upscaling.</p>
-        <div className="block__art">
+        <div className={`block__art ${MOTION.length === 1 ? "block__art--one" : ""}`.trim()}>
           {MOTION.map((src, i) => (
-            <Pixel key={src} src={src} alt={`Lab clip ${i + 1}`} label={`ruxxel${i + 1}.gif`} />
+            <Pixel key={src} src={src} alt={`Lab clip ${i + 1}`} label={`ruxxells${i + 1}.mp4`} />
           ))}
         </div>
       </div>
