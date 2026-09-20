@@ -34,10 +34,6 @@ export default function AppBar() {
           </nav>
 
           <div className="appbar__side">
-            <Link href="/mint" className="join">
-              Apply
-            </Link>
-
             <button
               className="burger"
               onClick={() => setOpen((v) => !v)}
