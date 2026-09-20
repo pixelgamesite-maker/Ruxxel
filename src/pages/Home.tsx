@@ -1,10 +1,11 @@
 import { Link } from "wouter";
-import { BRAND, COLLECTION, DISCLAIMER, LAB_CARDS, MOTION, PIXELS, ROADMAP, STEPS } from "@/data/site";
+import { BRAND, COLLECTION, DISCLAIMER, MOTION, PIXELS, ROADMAP, STEPS } from "@/data/site";
 import { CREW } from "@/data/crew";
 import { ASSETS } from "@/data/assets";
 import { usePrices } from "@/lib/prices";
 import { pct, price } from "@/lib/format";
-import { CardArt, Pixel, Section, Ticker, XIcon } from "@/components/ui/Kit";
+import { Pixel, Section, Ticker, XIcon } from "@/components/ui/Kit";
+import MiningCards from "@/components/home/MiningCards";
 
 export default function Home() {
   const { quotes, live } = usePrices();
@@ -59,19 +60,8 @@ export default function Home() {
         </div>
       </div>
 
-      <Section title="What the lab does" meta="Four tools">
-        <div className="grid-2">
-          {LAB_CARDS.map((c) => (
-            <Link key={c.id} href="/lab" className="card" data-tone={c.tone}>
-              <CardArt src={c.art} alt={c.name} pill={c.status} />
-              <div className="card__body">
-                <h3>{c.name}</h3>
-                <p>{c.blurb}</p>
-                <span className="card__link">Open</span>
-              </div>
-            </Link>
-          ))}
-        </div>
+      <Section title="The crew is already mining" meta="Live rates">
+        <MiningCards />
       </Section>
 
       <Section title="The crew" meta={`${CREW.length} roles`} band>
