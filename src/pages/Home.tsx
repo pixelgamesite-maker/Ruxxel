@@ -60,7 +60,7 @@ export default function Home() {
         </div>
       </div>
 
-      <Section title="The crew is already mining" meta="Live rates">
+      <Section title="Join a crew to start mining" meta="Live rates">
         <MiningCards />
       </Section>
 
