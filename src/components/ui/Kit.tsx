@@ -4,7 +4,7 @@ import { LOGO_CANDIDATES } from "@/data/site";
 /* ------------------------------------------------------------------ mark -- */
 
 /** Stacked isometric tiles — the worlds the crew works in, seen from above. */
-export function Mark({ size = 26, color = "#06210f" }: { size?: number; color?: string }) {
+export function Mark({ size = 26, color = "var(--green)" }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 28 28" fill="none" aria-hidden="true">
       <path d="M14 3 25 9 14 15 3 9 14 3Z" fill={color} />
@@ -15,7 +15,7 @@ export function Mark({ size = 26, color = "#06210f" }: { size?: number; color?: 
 }
 
 /** Brand tile. Tries each logo filename in turn, falls back to the drawn mark. */
-export function Logo({ size = 42, radius = 13 }: { size?: number; radius?: number }) {
+export function Logo({ size = 40, radius = 12 }: { size?: number; radius?: number }) {
   const [attempt, setAttempt] = useState(0);
   const src = LOGO_CANDIDATES[attempt];
 
@@ -24,7 +24,7 @@ export function Logo({ size = 42, radius = 13 }: { size?: number; radius?: numbe
       {src ? (
         <img src={src} alt="" onError={() => setAttempt((a) => a + 1)} />
       ) : (
-        <Mark size={Math.round(size * 0.54)} color="var(--green)" />
+        <Mark size={Math.round(size * 0.54)} />
       )}
     </span>
   );
@@ -38,11 +38,17 @@ export function XIcon({ size = 14 }: { size?: number }) {
   );
 }
 
-/* ------------------------------------------------------------------ pixel -- */
+/* ----------------------------------------------------------------- media -- */
 
-/** Drops in a Ruxxell. Shows a labelled slot if the file is not in /public yet. */
+const isVideo = (src: string) => /\.(mp4|webm|mov)$/i.test(src);
+
+/**
+ * Square art slot. Accepts a still or an mp4 loop and picks the right element.
+ * Falls back to a labelled tile if the file is not in /public yet.
+ */
 export function Pixel({ src, alt, label }: { src: string; alt: string; label?: string }) {
   const [failed, setFailed] = useState(false);
+
   if (failed) {
     return (
       <div className="pix pix--ph" role="img" aria-label={alt}>
@@ -50,14 +56,28 @@ export function Pixel({ src, alt, label }: { src: string; alt: string; label?: s
       </div>
     );
   }
+
   return (
     <div className="pix">
-      <img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} />
+      {isVideo(src) ? (
+        <video
+          src={src}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-label={alt}
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} />
+      )}
     </div>
   );
 }
 
-/** 16:9 art slot used at the top of a card. */
+/** Wide art slot used at the top of a card. */
 export function CardArt({ src, alt, pill }: { src: string; alt: string; pill?: string }) {
   const [failed, setFailed] = useState(false);
   return (
@@ -66,6 +86,8 @@ export function CardArt({ src, alt, pill }: { src: string; alt: string; pill?: s
         <div className="pix pix--ph" style={{ height: "100%", borderRadius: 0, border: 0 }}>
           {src.replace("/", "")}
         </div>
+      ) : isVideo(src) ? (
+        <video src={src} autoPlay muted loop playsInline preload="metadata" onError={() => setFailed(true)} />
       ) : (
         <img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} />
       )}
@@ -74,11 +96,21 @@ export function CardArt({ src, alt, pill }: { src: string; alt: string; pill?: s
   );
 }
 
-/* ------------------------------------------------------------------- misc -- */
+/* ------------------------------------------------------------------ misc -- */
 
-export function Section({ title, meta, children }: { title: string; meta?: string; children: ReactNode }) {
+export function Section({
+  title,
+  meta,
+  band = false,
+  children,
+}: {
+  title: string;
+  meta?: string;
+  band?: boolean;
+  children: ReactNode;
+}) {
   return (
-    <section className="sec">
+    <section className={`sec ${band ? "sec--band" : ""}`.trim()}>
       <div className="sec__h">
         <h2>{title}</h2>
         {meta && <span className="mono">{meta}</span>}
@@ -102,7 +134,7 @@ export function Rich({ text }: { text: string }) {
 export function Sparkline({
   data,
   height = 110,
-  stroke = "var(--rh)",
+  stroke = "var(--green)",
 }: {
   data: number[];
   height?: number;
@@ -132,7 +164,7 @@ export function Sparkline({
     >
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={stroke} stopOpacity="0.3" />
+          <stop offset="0%" stopColor={stroke} stopOpacity="0.35" />
           <stop offset="100%" stopColor={stroke} stopOpacity="0" />
         </linearGradient>
       </defs>
@@ -141,7 +173,7 @@ export function Sparkline({
         d={line}
         fill="none"
         stroke={stroke}
-        strokeWidth="2"
+        strokeWidth="2.2"
         strokeLinejoin="round"
         strokeLinecap="round"
         vectorEffect="non-scaling-stroke"
@@ -150,16 +182,28 @@ export function Sparkline({
   );
 }
 
-/** Compact market strip. Reads whatever you pass it, so it works with live data too. */
-export function Ticker({ items }: { items: { symbol: string; value: string; dir: number }[] }) {
+/** Market strip. Pass live quotes in and it renders whatever it is given. */
+export function Ticker({
+  items,
+  live,
+}: {
+  items: { symbol: string; value: string; dir: number }[];
+  live?: boolean;
+}) {
   return (
     <div className="ticker" role="list" aria-label="Market snapshot">
-      {items.map((i) => (
-        <div className="ticker__i" key={i.symbol} role="listitem">
-          <span className="ticker__s">{i.symbol}</span>
-          <span className={`ticker__v ${i.dir > 0 ? "up" : i.dir < 0 ? "down" : ""}`}>{i.value}</span>
-        </div>
-      ))}
+      <div className={`ticker__flag ${live ? "live" : ""}`.trim()}>
+        <i className="dot" />
+        <span className="mono">{live ? "Live" : "Sample"}</span>
+      </div>
+      <div className="ticker__track">
+        {items.map((i) => (
+          <div className="ticker__i" key={i.symbol} role="listitem">
+            <span className="ticker__s">{i.symbol}</span>
+            <span className={`ticker__v ${i.dir > 0 ? "up" : i.dir < 0 ? "down" : ""}`}>{i.value}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
