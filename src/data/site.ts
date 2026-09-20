@@ -6,6 +6,8 @@ export const BRAND = {
   chain: "Robinhood Chain",
   x: "https://x.com/ruxxellsHQ",
   handle: "@ruxxellsHQ",
+  /** Update once the collection page exists. */
+  launchpad: "https://opensea.io/collection/ruxxells",
 };
 
 export const COLLECTION = {
