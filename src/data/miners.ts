@@ -2,6 +2,18 @@ import { PIXELS } from "./site";
 
 export type Rarity = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary" | "Mythic";
 
+/**
+ * Worlds are just strings — add as many as the collection has, no fixed set.
+ * This list is only here so the names stay spelled the same way everywhere.
+ */
+export const WORLDS = [
+  "Deep canyon",
+  "Frozen station",
+  "Orbital deck",
+  "Molten field",
+  "Deep water lab",
+] as const;
+
 export type Miner = {
   id: string;
   token: string;
@@ -98,5 +110,41 @@ export const MINERS: Miner[] = [
     rux: 19.8,
     uptime: 95.1,
     art: PIXELS[5],
+  },
+  {
+    id: "m7",
+    token: "#0679",
+    role: "Scout",
+    world: "Deep canyon",
+    rarity: "Rare",
+    tone: "cyan",
+    hash: 806,
+    rux: 26.4,
+    uptime: 97.1,
+    art: PIXELS[6],
+  },
+  {
+    id: "m8",
+    token: "#1488",
+    role: "Trader",
+    world: "Molten field",
+    rarity: "Epic",
+    tone: "orange",
+    hash: 1122,
+    rux: 37.2,
+    uptime: 98.3,
+    art: PIXELS[7],
+  },
+  {
+    id: "m9",
+    token: "#0915",
+    role: "Scientist",
+    world: "Frozen station",
+    rarity: "Common",
+    tone: "purple",
+    hash: 534,
+    rux: 17.3,
+    uptime: 94.6,
+    art: PIXELS[8],
   },
 ];
