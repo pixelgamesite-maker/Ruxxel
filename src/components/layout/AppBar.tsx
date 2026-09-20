@@ -33,20 +33,22 @@ export default function AppBar() {
             ))}
           </nav>
 
-          <Link href="/mint" className="join">
-            Join
-          </Link>
+          <div className="appbar__side">
+            <Link href="/mint" className="join">
+              Apply
+            </Link>
 
-          <button
-            className="burger"
-            onClick={() => setOpen((v) => !v)}
-            aria-expanded={open}
-            aria-label={open ? "Close menu" : "Open menu"}
-          >
-            <span />
-            <span />
-            <span />
-          </button>
+            <button
+              className="burger"
+              onClick={() => setOpen((v) => !v)}
+              aria-expanded={open}
+              aria-label={open ? "Close menu" : "Open menu"}
+            >
+              <span />
+              <span />
+              <span />
+            </button>
+          </div>
         </div>
       </header>
 
