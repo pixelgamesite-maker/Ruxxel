@@ -2,15 +2,16 @@ import { Link } from "wouter";
 import { BRAND, COLLECTION, DISCLAIMER, LAB_CARDS, MOTION, PIXELS, ROADMAP, STEPS } from "@/data/site";
 import { CREW } from "@/data/crew";
 import { ASSETS } from "@/data/assets";
+import { usePrices } from "@/lib/prices";
 import { pct, price } from "@/lib/format";
 import { CardArt, Pixel, Section, Ticker, XIcon } from "@/components/ui/Kit";
 
 export default function Home() {
-  const ticker = ASSETS.slice(0, 5).map((a) => ({
-    symbol: a.symbol,
-    value: `${price(a.price)}  ${pct(a.change24h)}`,
-    dir: a.change24h,
-  }));
+  const { quotes, live } = usePrices();
+  const ticker = ASSETS.slice(0, 6).map((a) => {
+    const q = quotes[a.symbol] ?? { price: a.price, change24h: a.change24h };
+    return { symbol: a.symbol, value: `${price(q.price)}  ${pct(q.change24h)}`, dir: q.change24h };
+  });
 
   return (
     <>
@@ -36,12 +37,12 @@ export default function Home() {
         </div>
 
         <div className="block__art">
-          <Pixel src={MOTION[0]} alt="Inside the lab" label="ruxxells1.gif" />
-          <Pixel src={MOTION[1]} alt="Inside the lab" label="ruxxells2.gif" />
+          <Pixel src={MOTION[0]} alt="Inside the lab" label="ruxxells1.mp4" />
+          <Pixel src={PIXELS[0]} alt="A Ruxxell" label="#1" />
         </div>
       </section>
 
-      <Ticker items={ticker} />
+      <Ticker items={ticker} live={live} />
 
       <div className="stats" style={{ marginTop: 16 }}>
         <div className="stat">
@@ -73,7 +74,7 @@ export default function Home() {
         </div>
       </Section>
 
-      <Section title="The crew" meta={`${CREW.length} roles`}>
+      <Section title="The crew" meta={`${CREW.length} roles`} band>
         <div className="hscroll hscroll--sm">
           {CREW.map((m) => (
             <Link key={m.id} href="/crew" style={{ display: "grid", gap: 10, alignContent: "start" }}>
@@ -89,7 +90,7 @@ export default function Home() {
         </div>
       </Section>
 
-      <Section title="How it works" meta="Four moves">
+      <Section title="How it works" meta="Four moves" band>
         {STEPS.map((s, i) => (
           <div className="strip-row" key={s.k}>
             <span className="step__n">{i + 1}</span>
