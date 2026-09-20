@@ -1,7 +1,8 @@
 import { Route, Switch } from "wouter";
 import AppBar from "@/components/layout/AppBar";
-import TabBar from "@/components/layout/TabBar";
+import Footer from "@/components/layout/Footer";
 import ScrollToTop from "@/components/layout/ScrollToTop";
+import PixelRipple from "@/components/fx/PixelRipple";
 import Home from "@/pages/Home";
 import Lab from "@/pages/Lab";
 import Crew from "@/pages/Crew";
@@ -12,6 +13,7 @@ import NotFound from "@/pages/NotFound";
 export default function App() {
   return (
     <>
+      <PixelRipple />
       <ScrollToTop />
       <AppBar />
       <main className="app">
@@ -24,7 +26,7 @@ export default function App() {
           <Route component={NotFound} />
         </Switch>
       </main>
-      <TabBar />
+      <Footer />
     </>
   );
 }
