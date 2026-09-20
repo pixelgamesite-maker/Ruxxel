@@ -1,201 +1,189 @@
 import { useEffect, useState } from "react";
-import { ASSETS, type Asset } from "@/data/assets";
-import { LAB_CARDS } from "@/data/site";
-import AssetList from "@/components/lab/AssetList";
-import AssetDetail from "@/components/lab/AssetDetail";
-import CompareView from "@/components/lab/CompareView";
-import PortfolioView from "@/components/lab/PortfolioView";
+import { ASSETS, PORTFOLIO } from "@/data/assets";
+import { dirClass, pct, price } from "@/lib/format";
+import { Sparkline } from "@/components/ui/Kit";
 
-export default function Lab() {
-  const [tab, setTab] = useState("assets");
-  const [asset, setAsset] = useState<Asset>(ASSETS[0]);
-  const card = LAB_CARDS.find((c) => c.id === tab)!;
+/**
+ * The Lab is gated. What you see behind the panel is the real interface,
+ * running on sample data and cycling through itself. It does not scroll — the
+ * page changes scene on its own roughly every six seconds.
+ */
 
+const RISKS = ["Liquidity", "Volatility", "Concentration", "Custody"] as const;
+
+function SceneRows() {
   return (
-    <>
-      <div className="seg" style={{ paddingTop: 16 }}>
-        {LAB_CARDS.map((c) => (
-          <button key={c.id} data-on={tab === c.id ? 1 : 0} onClick={() => setTab(c.id)} aria-pressed={tab === c.id}>
-            {c.name}
-          </button>
-        ))}
-      </div>
-
-      <p className="note" style={{ padding: "0 16px 14px", display: "flex", alignItems: "center", gap: 8 }}>
-        <span className="dot" /> {card.blurb}
-      </p>
-
-      {tab === "assets" && (
-        <>
-          <AssetList selected={asset} onSelect={setAsset} />
-          <AssetDetail asset={asset} />
-        </>
-      )}
-      {tab === "compare" && <CompareView />}
-      {tab === "portfolio" && <PortfolioView />}
-      {tab === "alerts" && <AlertBuilder />}
-    </>
+    <div className="rows">
+      {ASSETS.slice(0, 6).map((a) => (
+        <div className="row" key={a.symbol}>
+          <span>
+            <span className="row__sym">{a.symbol}</span>
+            <span className="row__name">{a.name}</span>
+          </span>
+          <span>
+            <span className="row__px">{price(a.price)}</span>
+            <span className={`row__ch ${dirClass(a.change24h)}`}>{pct(a.change24h)}</span>
+          </span>
+        </div>
+      ))}
+    </div>
   );
 }
 
-/* --------------------------------------------------------------- alerts --
-   Kept in this file on purpose: one less module for the deploy to resolve.
-   -------------------------------------------------------------------------- */
-
-type Rule = { id: string; asset: string; kind: string; threshold: string; channel: string };
-
-const KINDS = [
-  { v: "move", label: "moves more than", needs: true, unit: "%" },
-  { v: "onchain", label: "does something weird onchain", needs: false, unit: "" },
-  { v: "allocation", label: "shifts my allocation by", needs: true, unit: "%" },
-  { v: "listing", label: "shows up for the first time", needs: false, unit: "" },
-  { v: "event", label: "has a big market event", needs: false, unit: "" },
-];
-
-const CHANNELS = ["In the app", "Email", "Push"];
-const STORE = "ruxxells_alerts_v1";
-
-const newId = () =>
-  typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `r-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
-const SEED: Omit<Rule, "id">[] = [
-  { asset: "Any asset", kind: "move", threshold: "5", channel: "In the app" },
-  { asset: "REITx", kind: "onchain", threshold: "", channel: "Push" },
-];
-
-function describe(r: Rule): string {
-  const kind = KINDS.find((k) => k.v === r.kind);
-  const t = kind?.needs ? ` ${r.threshold}${kind.unit}` : "";
-  return `${r.asset} ${kind?.label ?? r.kind}${t}`;
+function SceneChart() {
+  const a = ASSETS[1];
+  return (
+    <div className="sheet">
+      <div className="sheet__head">
+        <div>
+          <span className="mono" style={{ color: "var(--green)" }}>
+            {a.cls} · {a.sector}
+          </span>
+          <h3 style={{ fontSize: "1.3rem", margin: "6px 0 0" }}>{a.name}</h3>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div className="sheet__px">{price(a.price)}</div>
+          <div className={`num ${dirClass(a.change24h)}`} style={{ fontSize: "0.85rem" }}>
+            {pct(a.change24h)}
+          </div>
+        </div>
+      </div>
+      <div style={{ padding: "0 14px 14px" }}>
+        <Sparkline data={a.series} stroke="var(--green)" height={140} />
+      </div>
+      <div className="sheet__sec">
+        <div className="kv">
+          <div>
+            <span>Market cap</span>
+            <b>{a.marketCap}</b>
+          </div>
+          <div>
+            <span>Liquidity</span>
+            <b>{a.liquidity}</b>
+          </div>
+          <div>
+            <span>Holders</span>
+            <b>{a.holders.toLocaleString("en-US")}</b>
+          </div>
+          <div>
+            <span>Onchain 24h</span>
+            <b>{a.onchain24h}</b>
+          </div>
+          <div>
+            <span>Volatility</span>
+            <b>{a.vol30d}%</b>
+          </div>
+          <div>
+            <span>Risk</span>
+            <b>62</b>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-function AlertBuilder() {
-  const [rules, setRules] = useState<Rule[]>([]);
-  const [asset, setAsset] = useState("Any asset");
-  const [kind, setKind] = useState("move");
-  const [threshold, setThreshold] = useState("5");
-  const [channel, setChannel] = useState("In the app");
-  const [loaded, setLoaded] = useState(false);
+function SceneRisk() {
+  const a = ASSETS[5];
+  return (
+    <div className="sheet">
+      <div className="sheet__sec" style={{ borderTop: 0 }}>
+        <h4>
+          <span>Risk check</span>
+          <span>{a.symbol}</span>
+        </h4>
+        <div className="meter">
+          {RISKS.map((label) => {
+            const key = label.toLowerCase() as keyof typeof a.risk;
+            return (
+              <div key={label}>
+                <div className="meter__l">
+                  <span>{label}</span>
+                  <span>{a.risk[key]}</span>
+                </div>
+                <div className="meter__t">
+                  <div
+                    className="meter__f"
+                    style={{
+                      width: `${a.risk[key]}%`,
+                      background: a.risk[key] >= 60 ? "var(--down)" : "var(--green)",
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div className="sheet__sec">
+        <h4>
+          <span>Allocation</span>
+          <span>{PORTFOLIO.length} positions</span>
+        </h4>
+        <div className="meter">
+          {PORTFOLIO.slice(0, 4).map((p) => (
+            <div key={p.symbol}>
+              <div className="meter__l">
+                <span className="num">{p.symbol}</span>
+                <span>{p.weight}%</span>
+              </div>
+              <div className="meter__t">
+                <div className="meter__f" style={{ width: `${p.weight}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
+const SCENES = [<SceneRows key="rows" />, <SceneChart key="chart" />, <SceneRisk key="risk" />];
+
+export default function Lab() {
+  const [scene, setScene] = useState(0);
+
+  // the gate owns the viewport, so nothing behind it scrolls
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORE);
-      setRules(raw ? JSON.parse(raw) : SEED.map((s, i) => ({ ...s, id: `seed-${i}` })));
-    } catch {
-      setRules([]);
-    }
-    setLoaded(true);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
   }, []);
 
   useEffect(() => {
-    if (loaded) localStorage.setItem(STORE, JSON.stringify(rules));
-  }, [rules, loaded]);
-
-  const current = KINDS.find((k) => k.v === kind)!;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const t = window.setInterval(() => setScene((s) => (s + 1) % SCENES.length), 6000);
+    return () => window.clearInterval(t);
+  }, []);
 
   return (
-    <>
-      <div className="sheet">
-        <div className="sheet__sec" style={{ borderTop: 0 }}>
-          <h4>
-            <span>New alert</span>
-            <span>Saved on this device</span>
-          </h4>
-
-          <div style={{ display: "grid", gap: 10 }}>
-            <select className="input" value={asset} onChange={(e) => setAsset(e.target.value)} aria-label="Asset">
-              <option>Any asset</option>
-              {ASSETS.map((a) => (
-                <option key={a.symbol} value={a.symbol}>
-                  {a.symbol} — {a.name}
-                </option>
-              ))}
-            </select>
-
-            <select className="input" value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Trigger">
-              {KINDS.map((k) => (
-                <option key={k.v} value={k.v}>
-                  {k.label}
-                </option>
-              ))}
-            </select>
-
-            {current.needs && (
-              <input
-                className="input"
-                type="number"
-                min="0"
-                step="0.5"
-                value={threshold}
-                onChange={(e) => setThreshold(e.target.value)}
-                aria-label="Threshold"
-              />
-            )}
-
-            <select className="input" value={channel} onChange={(e) => setChannel(e.target.value)} aria-label="Channel">
-              {CHANNELS.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-
-            <button
-              className="btn"
-              onClick={() =>
-                setRules((r) => [
-                  { id: newId(), asset, kind, threshold: current.needs ? threshold : "", channel },
-                  ...r,
-                ])
-              }
-            >
-              Create alert
-            </button>
+    <div className="gate">
+      <div className="gate__bg" aria-hidden="true">
+        {SCENES.map((node, i) => (
+          <div className="gate__scene" key={i} data-on={scene === i ? 1 : 0}>
+            {node}
           </div>
-        </div>
-
-        <div className="sheet__sec">
-          <h4>
-            <span>Watching</span>
-            <span>{rules.length} active</span>
-          </h4>
-
-          {rules.length === 0 ? (
-            <p className="note">Nothing set yet. Build one above and the crew starts watching.</p>
-          ) : (
-            <div style={{ display: "grid", gap: 8 }}>
-              {rules.map((r) => (
-                <div
-                  key={r.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    background: "var(--card-2)",
-                    borderRadius: 14,
-                    padding: "12px 14px",
-                  }}
-                >
-                  <span className="dot" />
-                  <span style={{ flex: 1 }}>
-                    <b style={{ display: "block", fontSize: "0.89rem", fontWeight: 600 }}>{describe(r)}</b>
-                    <span className="mono" style={{ color: "var(--faint)" }}>
-                      {r.channel}
-                    </span>
-                  </span>
-                  <button
-                    onClick={() => setRules((all) => all.filter((x) => x.id !== r.id))}
-                    aria-label={`Delete alert: ${describe(r)}`}
-                    style={{ background: "none", border: 0, color: "var(--faint)", cursor: "pointer", fontSize: "1.1rem" }}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        ))}
       </div>
-    </>
+
+      <div className="gate__veil" aria-hidden="true" />
+
+      <div className="gate__fg">
+        <span className="mono gate__eyebrow">The mining protocol</span>
+        <h1>Ready to start mining?</h1>
+        <p>
+          Every Ruxxell mines $RUX from the lab it works in. Connect a wallet to check your crew,
+          claim your rate and put them to work.
+        </p>
+
+        <button className="btn btn--xl" disabled aria-disabled="true">
+          Connect Wallet
+        </button>
+
+        <span className="mono gate__soon">Coming soon</span>
+      </div>
+    </div>
   );
 }
