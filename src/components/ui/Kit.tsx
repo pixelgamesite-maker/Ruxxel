@@ -43,13 +43,29 @@ export function XIcon({ size = 14 }: { size?: number }) {
 const isVideo = (src: string) => /\.(mp4|webm|mov)$/i.test(src);
 
 /**
+ * Art files get renamed and re-exported constantly. Rather than 404 on a
+ * single extension, try the usual suspects in order before showing a slot.
+ */
+const EXTS = ["jpeg", "jpg", "png", "webp", "gif"];
+
+function candidates(src: string): string[] {
+  if (isVideo(src)) return [src];
+  const stem = src.replace(/\.[a-z0-9]+$/i, "");
+  const current = (src.match(/\.([a-z0-9]+)$/i)?.[1] ?? "").toLowerCase();
+  const rest = EXTS.filter((e) => e !== current);
+  return [src, ...rest.map((e) => `${stem}.${e}`)];
+}
+
+/**
  * Square art slot. Accepts a still or an mp4 loop and picks the right element.
  * Falls back to a labelled tile if the file is not in /public yet.
  */
 export function Pixel({ src, alt, label }: { src: string; alt: string; label?: string }) {
-  const [failed, setFailed] = useState(false);
+  const tries = candidates(src);
+  const [attempt, setAttempt] = useState(0);
+  const current = tries[attempt];
 
-  if (failed) {
+  if (!current) {
     return (
       <div className="pix pix--ph" role="img" aria-label={alt}>
         {label ?? src.replace("/", "")}
@@ -59,19 +75,25 @@ export function Pixel({ src, alt, label }: { src: string; alt: string; label?: s
 
   return (
     <div className="pix">
-      {isVideo(src) ? (
+      {isVideo(current) ? (
         <video
-          src={src}
+          src={current}
           autoPlay
           muted
           loop
           playsInline
           preload="metadata"
           aria-label={alt}
-          onError={() => setFailed(true)}
+          onError={() => setAttempt((a) => a + 1)}
         />
       ) : (
-        <img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} />
+        <img
+          key={current}
+          src={current}
+          alt={alt}
+          loading="lazy"
+          onError={() => setAttempt((a) => a + 1)}
+        />
       )}
     </div>
   );
@@ -79,17 +101,34 @@ export function Pixel({ src, alt, label }: { src: string; alt: string; label?: s
 
 /** Wide art slot used at the top of a card. */
 export function CardArt({ src, alt, pill }: { src: string; alt: string; pill?: string }) {
-  const [failed, setFailed] = useState(false);
+  const tries = candidates(src);
+  const [attempt, setAttempt] = useState(0);
+  const current = tries[attempt];
+
   return (
     <div className="card__art">
-      {failed ? (
+      {!current ? (
         <div className="pix pix--ph" style={{ height: "100%", borderRadius: 0, border: 0 }}>
           {src.replace("/", "")}
         </div>
-      ) : isVideo(src) ? (
-        <video src={src} autoPlay muted loop playsInline preload="metadata" onError={() => setFailed(true)} />
+      ) : isVideo(current) ? (
+        <video
+          src={current}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          onError={() => setAttempt((a) => a + 1)}
+        />
       ) : (
-        <img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} />
+        <img
+          key={current}
+          src={current}
+          alt={alt}
+          loading="lazy"
+          onError={() => setAttempt((a) => a + 1)}
+        />
       )}
       {pill && <span className="pill">{pill}</span>}
     </div>
