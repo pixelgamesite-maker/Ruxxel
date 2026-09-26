@@ -1,9 +1,9 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { LOGO_CANDIDATES } from "@/data/site";
 
 /* ------------------------------------------------------------------ mark -- */
 
-/** Stacked isometric tiles — the worlds the crew works in, seen from above. */
+/** Stacked isometric tiles — the worlds, seen from above. */
 export function Mark({ size = 26, color = "var(--green)" }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 28 28" fill="none" aria-hidden="true">
@@ -15,7 +15,7 @@ export function Mark({ size = 26, color = "var(--green)" }: { size?: number; col
 }
 
 /** Brand tile. Tries each logo filename in turn, falls back to the drawn mark. */
-export function Logo({ size = 40, radius = 12 }: { size?: number; radius?: number }) {
+export function Logo({ size = 32, radius = 9 }: { size?: number; radius?: number }) {
   const [attempt, setAttempt] = useState(0);
   const src = LOGO_CANDIDATES[attempt];
 
@@ -42,24 +42,17 @@ export function XIcon({ size = 14 }: { size?: number }) {
 
 const isVideo = (src: string) => /\.(mp4|webm|mov)$/i.test(src);
 
-/**
- * Art files get renamed and re-exported constantly. Rather than 404 on a
- * single extension, try the usual suspects in order before showing a slot.
- */
+/** Art gets re-exported constantly, so try the usual extensions before giving up. */
 const EXTS = ["jpeg", "jpg", "png", "webp", "gif"];
 
 function candidates(src: string): string[] {
   if (isVideo(src)) return [src];
   const stem = src.replace(/\.[a-z0-9]+$/i, "");
   const current = (src.match(/\.([a-z0-9]+)$/i)?.[1] ?? "").toLowerCase();
-  const rest = EXTS.filter((e) => e !== current);
-  return [src, ...rest.map((e) => `${stem}.${e}`)];
+  return [src, ...EXTS.filter((e) => e !== current).map((e) => `${stem}.${e}`)];
 }
 
-/**
- * Square art slot. Accepts a still or an mp4 loop and picks the right element.
- * Falls back to a labelled tile if the file is not in /public yet.
- */
+/** Square art slot. Handles stills and mp4 loops, shows a labelled tile if absent. */
 export function Pixel({ src, alt, label }: { src: string; alt: string; label?: string }) {
   const tries = candidates(src);
   const [attempt, setAttempt] = useState(0);
@@ -87,162 +80,114 @@ export function Pixel({ src, alt, label }: { src: string; alt: string; label?: s
           onError={() => setAttempt((a) => a + 1)}
         />
       ) : (
-        <img
-          key={current}
-          src={current}
-          alt={alt}
-          loading="lazy"
-          onError={() => setAttempt((a) => a + 1)}
-        />
+        <img key={current} src={current} alt={alt} loading="lazy" onError={() => setAttempt((a) => a + 1)} />
       )}
     </div>
   );
 }
 
-/** Wide art slot used at the top of a card. */
-export function CardArt({ src, alt, pill }: { src: string; alt: string; pill?: string }) {
+/** Bare media element for custom frames (hero stack, mining rig). */
+export function Media({ src, alt }: { src: string; alt: string }) {
   const tries = candidates(src);
   const [attempt, setAttempt] = useState(0);
   const current = tries[attempt];
 
-  return (
-    <div className="card__art">
-      {!current ? (
-        <div className="pix pix--ph" style={{ height: "100%", borderRadius: 0, border: 0 }}>
-          {src.replace("/", "")}
-        </div>
-      ) : isVideo(current) ? (
-        <video
-          src={current}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          onError={() => setAttempt((a) => a + 1)}
-        />
-      ) : (
-        <img
-          key={current}
-          src={current}
-          alt={alt}
-          loading="lazy"
-          onError={() => setAttempt((a) => a + 1)}
-        />
-      )}
-      {pill && <span className="pill">{pill}</span>}
-    </div>
+  if (!current) {
+    return <div className="pix pix--ph" style={{ height: "100%", borderRadius: 0, border: 0 }}>{src.replace("/", "")}</div>;
+  }
+
+  return isVideo(current) ? (
+    <video src={current} autoPlay muted loop playsInline preload="metadata" onError={() => setAttempt((a) => a + 1)} />
+  ) : (
+    <img key={current} src={current} alt={alt} loading="lazy" onError={() => setAttempt((a) => a + 1)} />
   );
 }
 
 /* ------------------------------------------------------------------ misc -- */
 
-export function Section({
-  title,
-  meta,
-  band = false,
-  children,
-}: {
-  title: string;
-  meta?: string;
-  band?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <section className={`sec ${band ? "sec--band" : ""}`.trim()}>
-      <div className="sec__h">
-        <h2>{title}</h2>
-        {meta && <span className="mono">{meta}</span>}
-      </div>
-      {children}
-    </section>
-  );
-}
+/** Reveals children once they scroll into view. One orchestrated entrance each. */
+export function Rise({ children, delay = 0, className = "" }: { children: ReactNode; delay?: number; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [seen, setSeen] = useState(false);
 
-/** Renders **bold** inside a plain string. */
-export function Rich({ text }: { text: string }) {
-  return (
-    <>
-      {text.split(/(\*\*[^*]+\*\*)/g).map((p, i) =>
-        p.startsWith("**") && p.endsWith("**") ? <b key={i}>{p.slice(2, -2)}</b> : <span key={i}>{p}</span>,
-      )}
-    </>
-  );
-}
-
-export function Sparkline({
-  data,
-  height = 110,
-  stroke = "var(--green)",
-}: {
-  data: number[];
-  height?: number;
-  stroke?: string;
-}) {
-  if (data.length < 2) return null;
-  const width = 560;
-  const pad = 8;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const span = max - min || 1;
-  const pts = data.map((v, i) => [
-    (i / (data.length - 1)) * width,
-    height - pad - ((v - min) / span) * (height - pad * 2),
-  ]);
-  const line = pts.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
-  const id = `sp${Math.round(min * 100)}${data.length}`;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setSeen(true);
+      return;
+    }
+    const obs = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          setSeen(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -8% 0px" },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
   return (
-    <svg
-      viewBox={`0 0 ${width} ${height}`}
-      width="100%"
-      height={height}
-      preserveAspectRatio="none"
-      role="img"
-      aria-label="Price history"
+    <div
+      ref={ref}
+      className={`rise ${className}`.trim()}
+      data-in={seen ? 1 : 0}
+      style={{ animationDelay: `${delay}ms` }}
     >
-      <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={stroke} stopOpacity="0.35" />
-          <stop offset="100%" stopColor={stroke} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={`${line} L${width},${height} L0,${height} Z`} fill={`url(#${id})`} />
-      <path
-        d={line}
-        fill="none"
-        stroke={stroke}
-        strokeWidth="2.2"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
-  );
-}
-
-/** Market strip. Pass live quotes in and it renders whatever it is given. */
-export function Ticker({
-  items,
-  live,
-}: {
-  items: { symbol: string; value: string; dir: number }[];
-  live?: boolean;
-}) {
-  return (
-    <div className="ticker" role="list" aria-label="Market snapshot">
-      <div className={`ticker__flag ${live ? "live" : ""}`.trim()}>
-        <i className="dot" />
-        <span className="mono">{live ? "Live" : "Sample"}</span>
-      </div>
-      <div className="ticker__track">
-        {items.map((i) => (
-          <div className="ticker__i" key={i.symbol} role="listitem">
-            <span className="ticker__s">{i.symbol}</span>
-            <span className={`ticker__v ${i.dir > 0 ? "up" : i.dir < 0 ? "down" : ""}`}>{i.value}</span>
-          </div>
-        ))}
-      </div>
+      {children}
     </div>
   );
+}
+
+export function Head({
+  eyebrow,
+  title,
+  body,
+  center = false,
+}: {
+  eyebrow?: string;
+  title: ReactNode;
+  body?: string;
+  center?: boolean;
+}) {
+  return (
+    <div className={`head ${center ? "head--center" : ""}`.trim()}>
+      {eyebrow && <span className="mono">{eyebrow}</span>}
+      <h2>{title}</h2>
+      {body && <p>{body}</p>}
+    </div>
+  );
+}
+
+/** Counts a number up smoothly whenever the target changes. */
+export function useCountUp(target: number, ms = 700) {
+  const [value, setValue] = useState(target);
+  const from = useRef(target);
+  const raf = useRef(0);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setValue(target);
+      return;
+    }
+    const start = performance.now();
+    const origin = from.current;
+    const delta = target - origin;
+
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / ms);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setValue(origin + delta * eased);
+      if (t < 1) raf.current = requestAnimationFrame(tick);
+      else from.current = target;
+    };
+
+    raf.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf.current);
+  }, [target, ms]);
+
+  return value;
 }
