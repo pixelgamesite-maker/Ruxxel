@@ -2,11 +2,10 @@ import { useEffect, useState } from "react";
 import { MINERS, RARITY_TONE, type Miner } from "@/data/miners";
 import { Pixel } from "@/components/ui/Kit";
 
-/** Small bounded random walk so the numbers breathe instead of jumping. */
+/** Bounded random walk so numbers breathe rather than jump. */
 function drift(base: number, spread: number, current: number) {
-  const pull = (base - current) * 0.18; // keeps it honest around the base
-  const noise = (Math.random() - 0.5) * spread;
-  return current + pull + noise;
+  const pull = (base - current) * 0.18;
+  return current + pull + (Math.random() - 0.5) * spread;
 }
 
 function Bars({ level, tone }: { level: number; tone: string }) {
@@ -20,10 +19,13 @@ function Bars({ level, tone }: { level: number; tone: string }) {
   );
 }
 
+const toneVar = (t: Miner["tone"]) =>
+  `var(--${t === "pink" ? "magenta" : t === "purple" ? "violet" : t})`;
+
 function MinerCard({ miner, delay }: { miner: Miner; delay: number }) {
   const [hash, setHash] = useState(miner.hash);
-  const [rux, setRux] = useState(miner.rux);
-  const [mined, setMined] = useState(() => miner.rux * (2 + Math.random() * 6));
+  const [rate, setRate] = useState(miner.yield);
+  const [mined, setMined] = useState(() => miner.yield * (2 + Math.random() * 6));
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -32,8 +34,8 @@ function MinerCard({ miner, delay }: { miner: Miner; delay: number }) {
     const start = window.setTimeout(() => {
       tick = window.setInterval(() => {
         setHash((h) => drift(miner.hash, miner.hash * 0.07, h));
-        setRux((r) => drift(miner.rux, miner.rux * 0.05, r));
-        setMined((m) => m + miner.rux / 1800);
+        setRate((r) => drift(miner.yield, miner.yield * 0.05, r));
+        setMined((m) => m + miner.yield / 1800);
       }, 1400);
     }, delay);
 
@@ -43,7 +45,7 @@ function MinerCard({ miner, delay }: { miner: Miner; delay: number }) {
     };
   }, [miner, delay]);
 
-  const tone = `var(--${miner.tone === "pink" ? "magenta" : miner.tone === "purple" ? "violet" : miner.tone})`;
+  const tone = toneVar(miner.tone);
   const level = Math.min(1, hash / (miner.hash * 1.25));
 
   return (
@@ -57,14 +59,14 @@ function MinerCard({ miner, delay }: { miner: Miner; delay: number }) {
 
       <div className="miner__b">
         <div className="miner__top">
-          <b className="num">{miner.token}</b>
+          <b>{miner.token}</b>
           <span className="miner__live">
             <i className="dot" /> mining
           </span>
         </div>
 
-        <span className="tag" data-tone={miner.tone}>
-          {miner.role} · {miner.world}
+        <span className="miner__meta" style={{ color: tone }}>
+          {miner.world} · rank #{miner.rank}
         </span>
 
         <Bars level={level} tone={tone} />
@@ -72,21 +74,27 @@ function MinerCard({ miner, delay }: { miner: Miner; delay: number }) {
         <dl className="miner__kv">
           <div>
             <dt>Hash</dt>
-            <dd className="num">{hash.toFixed(0)} H/s</dd>
+            <dd>{hash.toFixed(0)}</dd>
           </div>
           <div>
             <dt>Yield</dt>
-            <dd className="num" style={{ color: tone }}>
-              {rux.toFixed(1)} $RUX/h
-            </dd>
+            <dd style={{ color: tone }}>{rate.toFixed(1)}/h</dd>
           </div>
           <div>
             <dt>Mined</dt>
-            <dd className="num">{mined.toFixed(2)}</dd>
+            <dd>{mined.toFixed(2)}</dd>
           </div>
           <div>
-            <dt>Uptime</dt>
-            <dd className="num">{miner.uptime}%</dd>
+            <dt>Integrity</dt>
+            <dd>{miner.integrity}%</dd>
+          </div>
+          <div>
+            <dt>Depth</dt>
+            <dd>{miner.depth}</dd>
+          </div>
+          <div>
+            <dt>Artifacts</dt>
+            <dd>{miner.artifacts}</dd>
           </div>
         </dl>
       </div>
@@ -94,10 +102,10 @@ function MinerCard({ miner, delay }: { miner: Miner; delay: number }) {
   );
 }
 
-export default function MiningCards() {
+export default function MiningCards({ count = 6 }: { count?: number }) {
   return (
     <div className="miners">
-      {MINERS.map((m, i) => (
+      {MINERS.slice(0, count).map((m, i) => (
         <MinerCard key={m.id} miner={m} delay={i * 220} />
       ))}
     </div>
