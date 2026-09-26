@@ -1,86 +1,76 @@
 import { BRAND, COLLECTION, DISCLAIMER, ROADMAP } from "@/data/site";
-import { Section, XIcon } from "@/components/ui/Kit";
-import AccessForm from "@/components/whitelist/AccessForm";
+import { Head, Rise, XIcon } from "@/components/ui/Kit";
+import AccessForm from "@/components/mint/AccessForm";
 
 const PERKS = [
-  "Unlimited alerts on every covered asset",
-  "The war room: overlap, concentration, risk",
-  "Full history instead of the last 90 days",
-  "First look at assets as they get tokenized",
-  "A vote on what gets covered next",
+  { k: "Worldvault", d: "Your Ruxxell gets its own account. Everything it discovers stays attached to it, even on resale." },
+  { k: "Mining", d: "24-hour sessions from day one, at a rate your own metadata determines." },
+  { k: "Excavation", d: "Spend RUXX to go deeper and pull Fragments and Artifacts out of your world." },
+  { k: "Evolution", d: "Rebuild toward 100% integrity and push the NFT through five visible stages." },
+  { k: "Leaderboards", d: "Five boards to climb, from raw RUXX mined to deepest excavation." },
+  { k: "Raffles", d: "Activity across the ecosystem converts into entries every cycle." },
 ];
 
 export default function Mint() {
   return (
     <>
-      <div className="block">
-        <h1>
-          Get on the
-          <br />
-          access list.
-        </h1>
-        <span className="mono">{COLLECTION.status}</span>
-        <p>
-          {COLLECTION.supplyLabel} passes on {COLLECTION.chain}. Mint price {COLLECTION.mintPrice}.
-          Four steps, one wallet, reviewed by hand.
-        </p>
-      </div>
+      <section className="band" style={{ paddingBottom: "clamp(30px, 4vw, 50px)" }}>
+        <div className="wrap wrap--wide">
+          <div style={{ display: "grid", gap: "clamp(32px, 5vw, 56px)", gridTemplateColumns: "1fr" }}>
+            <Rise>
+              <Head
+                eyebrow={COLLECTION.status}
+                title="Get on the access list"
+                body={`${COLLECTION.supplyLabel} Ruxxells on ${COLLECTION.chain}. Mint price ${COLLECTION.mintPrice}. Four steps, one wallet, reviewed by hand.`}
+              />
+              <AccessForm />
+            </Rise>
 
-      <div className="stats" style={{ marginTop: 14 }}>
-        <div className="stat">
-          <b>{COLLECTION.supplyLabel}</b>
-          <span>Supply</span>
-        </div>
-        <div className="stat">
-          <b>{COLLECTION.mintPrice}</b>
-          <span>Price</span>
-        </div>
-        <div className="stat">
-          <b>1</b>
-          <span>Per wallet</span>
-        </div>
-      </div>
-
-      <Section title="Apply" meta="4 steps">
-        <AccessForm />
-      </Section>
-
-      <Section title="What a pass opens" meta="Holders only">
-        {PERKS.map((p) => (
-          <div className="strip-row" key={p}>
-            <span className="dot" />
-            <span style={{ fontSize: "0.9rem" }}>{p}</span>
+            <Rise delay={120}>
+              <div className="tiles" style={{ gridTemplateColumns: "1fr" }}>
+                {PERKS.map((p) => (
+                  <article className="tile" data-tone="green" key={p.k}>
+                    <span className="mono">{p.k}</span>
+                    <p>{p.d}</p>
+                  </article>
+                ))}
+              </div>
+            </Rise>
           </div>
-        ))}
-      </Section>
-
-      <Section title="The plan" meta="Roadmap">
-        <div className="timeline">
-          {ROADMAP.map((p) => (
-            <div className="phase" key={p.t}>
-              <span className="mono" style={{ color: "var(--rh)" }}>
-                {p.k}
-              </span>
-              <b>{p.t}</b>
-              <p>{p.d}</p>
-            </div>
-          ))}
         </div>
-      </Section>
+      </section>
 
-      <div style={{ padding: "22px 16px 0" }}>
-        <a
-          className="btn btn--ghost"
-          href={BRAND.x}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
-        >
-          <XIcon /> Mint details drop on {BRAND.handle}
-        </a>
-      </div>
+      <section className="band band--tint band--rule">
+        <div className="wrap">
+          <Rise>
+            <Head eyebrow="What happens when" title="The plan" />
+          </Rise>
+          <Rise delay={80}>
+            <div className="timeline">
+              {ROADMAP.map((p) => (
+                <div className="phase" key={p.t}>
+                  <span className="mono" style={{ color: "var(--green)" }}>{p.k}</span>
+                  <b>{p.t}</b>
+                  <p>{p.d}</p>
+                </div>
+              ))}
+            </div>
+          </Rise>
+        </div>
+      </section>
 
-      <p className="disclaimer">{DISCLAIMER}</p>
+      <section className="band">
+        <div className="wrap wrap--text">
+          <Rise>
+            <div style={{ textAlign: "center", display: "grid", gap: 20, justifyItems: "center" }}>
+              <a className="btn btn--xl btn--ghost" href={BRAND.x} target="_blank" rel="noopener noreferrer">
+                <XIcon /> Mint details drop on {BRAND.handle}
+              </a>
+              <p className="disclaimer" style={{ margin: 0 }}>{DISCLAIMER}</p>
+            </div>
+          </Rise>
+        </div>
+      </section>
     </>
   );
 }
