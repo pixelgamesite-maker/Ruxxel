@@ -139,7 +139,7 @@ export default function Home() {
       </section>
 
       {/* ───────────────────────────────── reconstruction */}
-      <section className="band">
+      <section className="band band--flip" data-tone="violet">
         <div className="wrap wrap--wide">
           <Rise>
             <Head
@@ -248,7 +248,7 @@ export default function Home() {
       </section>
 
       {/* ───────────────────────────────── resale */}
-      <section className="band band--tint band--rule">
+      <section className="band band--flip" data-tone="green">
         <div className="wrap wrap--wide">
           <Rise>
             <Head
