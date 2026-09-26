@@ -2,7 +2,7 @@
 
 export const BRAND = {
   name: "Ruxxells",
-  tagline: "Your onchain research crew",
+  tagline: "Every Ruxxell is an explorable fragment of another world",
   chain: "Robinhood Chain",
   x: "https://x.com/ruxxellsHQ",
   handle: "@ruxxellsHQ",
@@ -19,9 +19,8 @@ export const COLLECTION = {
 };
 
 /**
- * Artwork lives in /public. Filenames are built from these three constants, so
- * renaming the files only means editing here.
- *   ruxxells1.jpeg ... ruxxells20.jpeg
+ * Artwork lives in /public. Filenames build from these constants, so a rename
+ * is a one-line edit here.
  */
 const ART_NAME = "ruxxells";
 const ART_EXT = "jpeg";
@@ -29,72 +28,28 @@ export const ART_COUNT = 20;
 
 export const PIXELS = Array.from({ length: ART_COUNT }, (_, i) => `/${ART_NAME}${i + 1}.${ART_EXT}`);
 
-/** Video loops. Add more filenames here as you export them. */
+/** Video loops. Add filenames as you export them. */
 export const MOTION = [`/${ART_NAME}1.mp4`];
 
-/** Logo file in /public. The first one that loads wins, so .jpg/.png/.jpeg all work. */
+/** The first file that loads wins, so .jpg/.png/.jpeg all work. */
 export const LOGO_CANDIDATES = ["/logo.jpg", "/logo.png", "/logo.jpeg"];
-export const LOGO = LOGO_CANDIDATES[0];
-
-/** The Lab, presented like an app's product shelf. */
-export const LAB_CARDS = [
-  {
-    id: "assets",
-    name: "Asset Files",
-    tone: "green",
-    art: PIXELS[5],
-    status: "Try it",
-    blurb: "Every tokenized asset, opened up. Price, risk, flows, and what actually moved it.",
-  },
-  {
-    id: "compare",
-    name: "Face Off",
-    tone: "cyan",
-    art: PIXELS[6],
-    status: "Try it",
-    blurb: "Four assets, one axis. Rebased so a $2,400 gold token and a $100 note line up.",
-  },
-  {
-    id: "portfolio",
-    name: "War Room",
-    tone: "pink",
-    art: PIXELS[7],
-    status: "Try it",
-    blurb: "Your whole bag in one view. Overlap, concentration, and what is really driving risk.",
-  },
-  {
-    id: "alerts",
-    name: "The Siren",
-    tone: "orange",
-    art: PIXELS[8],
-    status: "Try it",
-    blurb: "Tell the crew what matters. They shout when it happens and stay quiet when it does not.",
-  },
-];
-
-export const STEPS = [
-  { k: "Find it", d: "New tokenized assets, the moment they land." },
-  { k: "Read it", d: "Fundamentals, market data and onchain flows in one card." },
-  { k: "Stack it", d: "Compare against anything else on the chain." },
-  { k: "Watch it", d: "Alerts for the moves you actually care about." },
-];
-
-export const ROADMAP = [
-  { k: "Now", t: "Access list", d: "Four steps. Applications get read by a human, not a bot." },
-  { k: "Next", t: "Lab beta", d: "Asset files, war room and alerts open to access list wallets." },
-  { k: "Then", t: "Mint", d: `${COLLECTION.supplyLabel} Ruxxells on ${COLLECTION.chain}. Price announced first on X.` },
-  { k: "After", t: "Reveal", d: "Roles, worlds and traits go live. Your crew shapes your lab." },
-  { k: "Later", t: "Ask anything", d: "Plain language questions, answered from real market and chain data." },
-  { k: "Eventually", t: "The whole chain", d: "Coverage grows as fast as things get tokenized." },
-];
 
 export const NAV = [
   { href: "/", label: "Home" },
-  { href: "/lab", label: "The Lab" },
-  { href: "/crew", label: "The Crew" },
-  { href: "/peek", label: "Gallery" },
+  { href: "/mine", label: "Mining" },
+  { href: "/dig", label: "Excavation" },
+  { href: "/worlds", label: "Worlds" },
   { href: "/mint", label: "Mint" },
 ];
 
+export const ROADMAP = [
+  { k: "Now", t: "Access list", d: "Four steps, read by a human. No bots, no first-come scramble." },
+  { k: "Next", t: "Mint", d: `${COLLECTION.supplyLabel} Ruxxells on ${COLLECTION.chain}. Price announced on X first.` },
+  { k: "Then", t: "Reveal", d: "Traits, rarity and world type resolve. That metadata becomes your starting DNA." },
+  { k: "After", t: "Connect and mine", d: "Link your wallet, see every Ruxxell you hold, start the first 24-hour session." },
+  { k: "Later", t: "Excavation opens", d: "Spend RUXX to dig. Fragments, Artifacts and Depth come online." },
+  { k: "Eventually", t: "$RUXX", d: "Points convert once the economy has real numbers behind it to balance against." },
+];
+
 export const DISCLAIMER =
-  "Mint date and price are not final. Data shown in this app is sample data. Nothing here is financial advice.";
+  "Mint date and price are not final. Stats shown on this site are illustrative. Nothing here is financial advice.";
