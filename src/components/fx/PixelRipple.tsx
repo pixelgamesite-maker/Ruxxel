@@ -1,22 +1,19 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Background pixel ripple.
- *
- * A single ring of small squares eases outward from each press, dissolving as
- * it goes. Restrained on purpose: one brand colour per ripple, low alpha, a
- * short eased life. It should read as the surface reacting, not as confetti.
+ * Background pixel ripple. One eased ring of small squares per press,
+ * dissolving into grain. Restrained on purpose — the surface reacting,
+ * not confetti.
  */
 
 type Ring = { x: number; y: number; born: number; tint: [number, number, number] };
 
-const CELL = 9; // square size in px
-const GAP = 1; // px removed from each square, keeps the grid legible
-const LIFE = 900; // ms
-const REACH = 260; // px the ring travels
-const BAND = 26; // thickness of the lit band
+const CELL = 9;
+const GAP = 1;
+const LIFE = 900;
+const REACH = 260;
+const BAND = 26;
 
-/** Brand greens through to violet, kept desaturated so it stays quiet. */
 const TINTS: [number, number, number][] = [
   [43, 255, 134],
   [79, 227, 255],
@@ -80,8 +77,6 @@ export default function PixelRipple() {
             const edge = Math.abs(dist - radius);
             if (edge > BAND) continue;
 
-            // soft falloff across the band, plus a little grain so the ring
-            // dissolves into pixels rather than fading as a solid shape
             const falloff = Math.pow(1 - edge / BAND, 2);
             const grain = 0.65 + Math.random() * 0.35;
             const alpha = falloff * fade * grain * 0.3;
@@ -95,7 +90,6 @@ export default function PixelRipple() {
           }
         }
 
-        // the press itself: a brief bright core that collapses quickly
         if (t < 0.28) {
           const core = (1 - t / 0.28) * 0.5;
           const cx = Math.floor(ring.x / CELL) * CELL;
