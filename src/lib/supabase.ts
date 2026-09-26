@@ -10,12 +10,7 @@ export const supabaseReady = Boolean(url && key);
 export const supabase: SupabaseClient | null = supabaseReady ? createClient(url, key) : null;
 
 /**
- * Table the access list writes to. Create it in Supabase with:
- *   id          uuid        default gen_random_uuid()  primary key
- *   created_at  timestamptz default now()
- *   wallet      text        unique
- *   twitter     text
- *   quote_url   text
- * and an insert-only RLS policy for the anon role.
+ * Table the access list writes to. See the SQL file for schema and the
+ * insert-only RLS policy for the anon role.
  */
-export const ACCESS_TABLE = "ruxxells_access";
+export const ACCESS_TABLE = "ruxxells";
