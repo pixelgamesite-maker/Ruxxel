@@ -4,10 +4,10 @@ import Footer from "@/components/layout/Footer";
 import ScrollToTop from "@/components/layout/ScrollToTop";
 import PixelRipple from "@/components/fx/PixelRipple";
 import Home from "@/pages/Home";
-import Lab from "@/pages/Lab";
-import Crew from "@/pages/Crew";
+import Mine from "@/pages/Mine";
+import Dig from "@/pages/Dig";
+import Worlds from "@/pages/Worlds";
 import Mint from "@/pages/Mint";
-import Peek from "@/pages/Peek";
 import NotFound from "@/pages/NotFound";
 
 export default function App() {
@@ -19,10 +19,10 @@ export default function App() {
       <main className="app">
         <Switch>
           <Route path="/" component={Home} />
-          <Route path="/lab" component={Lab} />
-          <Route path="/crew" component={Crew} />
+          <Route path="/mine" component={Mine} />
+          <Route path="/dig" component={Dig} />
+          <Route path="/worlds" component={Worlds} />
           <Route path="/mint" component={Mint} />
-          <Route path="/peek" component={Peek} />
           <Route component={NotFound} />
         </Switch>
       </main>
