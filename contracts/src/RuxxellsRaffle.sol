@@ -27,6 +27,7 @@ pragma solidity ^0.8.24;
 interface IERC721Minimal {
     function ownerOf(uint256 tokenId) external view returns (address);
     function safeTransferFrom(address from, address to, uint256 tokenId) external;
+    function transferFrom(address from, address to, uint256 tokenId) external;
 }
 
 interface IERC721ReceiverMinimal {
@@ -143,9 +144,28 @@ contract RuxxellsRaffle is OwnableMinimal, ReentrancyGuardMinimal, IERC721Receiv
 
     /* ----------------------------- deposits ----------------------------- */
 
-    /// @dev Called automatically when the Safe (or anyone) sends an NFT here
-    /// via `safeTransferFrom`. Only accepts tokens from the configured
-    /// collection, and only before entries have opened.
+    /**
+     * Pull `tokenIds` from the owner into this contract in one transaction.
+     * This is the primary deposit path, matching the approve-then-deposit
+     * pattern: the owner first calls `setApprovalForAll(raffle, true)` on the
+     * NFT collection (one approval covers every token), then calls this.
+     * Only before entries have opened.
+     */
+    function depositPrizes(uint256[] calldata tokenIds) external onlyOwner {
+        if (entryDeadline != 0) revert AlreadyOpened();
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            // Plain transferFrom (not safeTransferFrom) so this does NOT
+            // re-enter onERC721Received and double-count the token.
+            nft.transferFrom(msg.sender, address(this), tokenIds[i]);
+            depositedTokenIds.push(tokenIds[i]);
+            emit Deposited(tokenIds[i], depositedTokenIds.length);
+        }
+    }
+
+    /// @dev Fallback deposit path: called automatically when a wallet (e.g. a
+    /// Safe doing a batch send) transfers an NFT here via `safeTransferFrom`.
+    /// Only accepts tokens from the configured collection, and only before
+    /// entries have opened.
     function onERC721Received(
         address /* operator */,
         address /* from */,

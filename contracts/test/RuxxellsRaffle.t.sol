@@ -34,6 +34,53 @@ contract RuxxellsRaffleTest is Test {
         assertEq(raffle.depositedCount(), 2);
     }
 
+    function test_depositPrizes_pullPattern() public {
+        // The approve-then-deposit path: owner mints, approves the raffle for
+        // the whole collection, then deposits several tokens in one call.
+        token.mint(owner, 10);
+        token.mint(owner, 11);
+        token.mint(owner, 12);
+
+        vm.startPrank(owner);
+        token.setApprovalForAll(address(raffle), true);
+        uint256[] memory ids = new uint256[](3);
+        ids[0] = 10;
+        ids[1] = 11;
+        ids[2] = 12;
+        raffle.depositPrizes(ids);
+        vm.stopPrank();
+
+        assertEq(raffle.depositedCount(), 3);
+        assertEq(token.ownerOf(10), address(raffle));
+        assertEq(token.ownerOf(12), address(raffle));
+    }
+
+    function test_depositPrizes_onlyOwner() public {
+        token.mint(alice, 10);
+        vm.startPrank(alice);
+        token.setApprovalForAll(address(raffle), true);
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = 10;
+        vm.expectRevert(RuxxellsRaffle.NotOwner.selector);
+        raffle.depositPrizes(ids);
+        vm.stopPrank();
+    }
+
+    function test_depositPrizes_revertsAfterOpened() public {
+        _deposit(1);
+        vm.prank(owner);
+        raffle.openEntries(30 minutes);
+
+        token.mint(owner, 10);
+        vm.startPrank(owner);
+        token.setApprovalForAll(address(raffle), true);
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = 10;
+        vm.expectRevert(RuxxellsRaffle.AlreadyOpened.selector);
+        raffle.depositPrizes(ids);
+        vm.stopPrank();
+    }
+
     function test_cannotDepositWrongCollection() public {
         MockERC721 other = new MockERC721();
         other.mint(owner, 1);

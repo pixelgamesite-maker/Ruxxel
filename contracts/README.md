@@ -10,6 +10,10 @@ No external dependencies (no OpenZeppelin) -- `src/RuxxellsRaffle.sol` is a
 single self-contained file, so it also pastes directly into Remix if you'd
 rather deploy that way.
 
+Full step-by-step operational guide (install Foundry, import your key the
+safe way, deploy, deposit, open, distribute, sweep) is in **DEPLOY.md**. The
+short version:
+
 ## Setup (first time)
 
 ```bash
@@ -34,9 +38,11 @@ anything fails to fix.
 
 ## How it works
 
-1. **Deposit**: the Safe calls `safeTransferFrom` on the Ruxxells NFT
-   contract, sending each raffle token to this contract's address. The
-   contract's `onERC721Received` hook records every tokenId it receives.
+1. **Deposit**: the owner approves the raffle for the whole collection
+   (`setApprovalForAll`) once, then calls `depositPrizes([tokenIds])` — the
+   contract pulls every listed token in one transaction. (A Safe can instead
+   batch-send tokens in via `safeTransferFrom`; the `onERC721Received` hook
+   records those too. Either path works.)
 2. **Open entries**: owner (should be the Safe) calls
    `openEntries(1800)` for a 30-minute window (`1800` seconds). Can only be
    called once, and only after at least one NFT has been deposited.
@@ -55,27 +61,17 @@ anything fails to fix.
 
 ## Deploying
 
-The Safe can't sign a raw deploy transaction, so deploy from a normal wallet
-and set `INITIAL_OWNER` to the Safe address directly -- that way the Safe is
-the contract's owner from the moment it's deployed, no extra
-`transferOwnership` step needed.
-
-```bash
-export PRIVATE_KEY=0x...            # a normal throwaway/deployer EOA, NOT the Safe
-export NFT_CONTRACT=0x...           # the Ruxxells collection
-export INITIAL_OWNER=0x...          # your Safe address
-export ROBINHOOD_RPC_URL=https://robinhood-mainnet.g.alchemy.com/v2/<your-key>
-
-forge script script/Deploy.s.sol:Deploy --rpc-url robinhood --broadcast
-```
-
-After deploy, every admin call (`openEntries`, `distribute`, `sweepUnclaimed`)
-has to come from the Safe (propose → sign → execute in the Safe UI, same as
-any other Safe transaction), since the Safe is `owner`.
+See **DEPLOY.md** for the full flow. In short: import your deployer key once
+into Foundry's encrypted keystore (`cast wallet import ruxxell-deployer
+--interactive`) — never a raw key in a file or env — then run the deploy
+script with `--account ruxxell-deployer --sender <addr>`. With the Safe
+dropped, the deployer EOA is both deployer and owner, so every admin call
+(`openEntries`, `distribute`, `sweepUnclaimed`) is just a `cast send` from
+that same account.
 
 ## Using Remix instead
 
 Paste `src/RuxxellsRaffle.sol` into a new Remix file as-is (no imports to
 resolve), compile with `0.8.24`, deploy with constructor args
-`(nftContract, initialOwner)`. Same caveat: set `initialOwner` to the Safe
-address directly if you want the Safe to hold admin rights from deployment.
+`(nftContract, initialOwner)` — set `initialOwner` to whichever address
+should control the raffle.

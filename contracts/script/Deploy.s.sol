@@ -7,29 +7,36 @@ import {RuxxellsRaffle} from "../src/RuxxellsRaffle.sol";
 /**
  * Deploys RuxxellsRaffle.
  *
- * Required env vars:
- *   PRIVATE_KEY   - deployer key (local/test wallet; NOT the Safe -- a Safe
- *                   can't sign a raw tx, so deploy from a normal EOA, then
- *                   call transferOwnership(SAFE_ADDRESS) separately, either
- *                   as its own script run or directly from the Safe UI).
- *   NFT_CONTRACT  - the Ruxxells collection address.
- *   INITIAL_OWNER - who the contract's `owner` should be. Usually your Safe
- *                   address directly, so you skip the extra transferOwnership
- *                   step -- the Safe just can't be msg.sender at deploy time.
+ * Signing is done with an ENCRYPTED KEYSTORE, not a raw private key in the
+ * environment -- the key never appears in a file, in shell history, or in
+ * this repo. You import it once (interactively) and refer to it by name:
  *
- * Usage:
+ *   cast wallet import ruxxell-deployer --interactive
+ *     # paste the deployer key when prompted, set a password
+ *
+ * Then deploy, passing the account name and its address. Foundry prompts for
+ * the keystore password at broadcast time:
+ *
+ *   export NFT_CONTRACT=0x...     # the Ruxxells collection
+ *   export INITIAL_OWNER=0x...    # who controls the raffle (the deployer EOA
+ *                                 # itself is fine now the Safe is dropped)
+ *   export ROBINHOOD_RPC_URL=https://robinhood-mainnet.g.alchemy.com/v2/<key>
+ *
  *   forge script script/Deploy.s.sol:Deploy \
- *     --rpc-url robinhood \
- *     --broadcast \
- *     --verify
+ *     --rpc-url "$ROBINHOOD_RPC_URL" \
+ *     --account ruxxell-deployer \
+ *     --sender <deployer-address> \
+ *     --broadcast
+ *
+ * `vm.startBroadcast()` takes no key here -- it uses the --account/--sender
+ * pair from the CLI, which is the whole point of the keystore flow.
  */
 contract Deploy is Script {
     function run() external returns (RuxxellsRaffle raffle) {
-        uint256 pk = vm.envUint("PRIVATE_KEY");
         address nftContract = vm.envAddress("NFT_CONTRACT");
         address initialOwner = vm.envAddress("INITIAL_OWNER");
 
-        vm.startBroadcast(pk);
+        vm.startBroadcast();
         raffle = new RuxxellsRaffle(nftContract, initialOwner);
         vm.stopBroadcast();
 

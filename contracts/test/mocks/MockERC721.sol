@@ -22,6 +22,10 @@ contract MockERC721 {
         isApprovedForAll[msg.sender][operator] = approved;
     }
 
+    function transferFrom(address from, address to, uint256 tokenId) external {
+        _transfer(from, to, tokenId);
+    }
+
     function safeTransferFrom(address from, address to, uint256 tokenId) external {
         _transfer(from, to, tokenId);
         if (to.code.length > 0) {

@@ -4,9 +4,8 @@ import { ROBINHOOD_CHAIN } from "@/data/chain";
 
 /**
  * viem chain definition for Robinhood Chain, built from the single source of
- * truth in `data/chain.ts` so the wagmi/RainbowKit config and the raw-wallet
- * code (`lib/claim/useWallet.ts`, `components/claim/useClaim.ts`) never
- * disagree about chain id or RPC URL.
+ * truth in `data/chain.ts` so the wagmi/RainbowKit config and any raw-wallet
+ * code never disagree about chain id or RPC URL.
  */
 export const robinhoodChain = defineChain({
   id: ROBINHOOD_CHAIN.chainId,
