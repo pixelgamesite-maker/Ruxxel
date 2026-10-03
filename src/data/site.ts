@@ -33,20 +33,20 @@ export const SHOW_CLAIM_IN_NAV = false;
 
 const art = (n: number) => `/ruxxells${n}.jpeg`;
 
-/** Sector rooms. 01 and 02 need their own files dropped into /public. */
+/** Sector rooms. 01 reuses ruxxells1; 02 uses the spare ruxxels5 duplicate. */
 export const SECTORS = [
   {
     no: "01",
     name: "The Holding Bay",
     line: "Concrete, chain-link and crates nobody will open. Everyone starts here.",
-    img: "/sector-1.jpeg",
+    img: art(1),
     tone: "blue",
   },
   {
     no: "02",
     name: "The Greenhouse",
     line: "Vines, grow beds and one arcade cabinet, with lava under the floor.",
-    img: "/sector-2.jpeg",
+    img: "/ruxxels5.jpeg",
     tone: "red",
   },
   {
