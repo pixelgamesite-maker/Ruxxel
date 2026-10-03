@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {RuxxellsRaffle} from "../src/RuxxellsRaffle.sol";
+import {RuxxellsRaffle, OwnableMinimal} from "../src/RuxxellsRaffle.sol";
 import {MockERC721} from "./mocks/MockERC721.sol";
 
 contract RuxxellsRaffleTest is Test {
@@ -61,7 +61,7 @@ contract RuxxellsRaffleTest is Test {
         token.setApprovalForAll(address(raffle), true);
         uint256[] memory ids = new uint256[](1);
         ids[0] = 10;
-        vm.expectRevert(RuxxellsRaffle.NotOwner.selector);
+        vm.expectRevert(OwnableMinimal.NotOwner.selector);
         raffle.depositPrizes(ids);
         vm.stopPrank();
     }
@@ -210,7 +210,7 @@ contract RuxxellsRaffleTest is Test {
         _deposit(1);
 
         vm.prank(alice);
-        vm.expectRevert(RuxxellsRaffle.NotOwner.selector);
+        vm.expectRevert(OwnableMinimal.NotOwner.selector);
         raffle.openEntries(30 minutes);
 
         vm.prank(owner);
@@ -219,7 +219,7 @@ contract RuxxellsRaffleTest is Test {
         vm.warp(block.timestamp + 31 minutes);
 
         vm.prank(alice);
-        vm.expectRevert(RuxxellsRaffle.NotOwner.selector);
+        vm.expectRevert(OwnableMinimal.NotOwner.selector);
         raffle.distribute(1);
     }
 
