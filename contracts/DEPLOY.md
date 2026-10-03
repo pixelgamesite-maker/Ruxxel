@@ -74,11 +74,11 @@ export RAFFLE=0x...   # from the deploy output
 
 # a) approve the raffle to move your NFTs (once per collection)
 cast send "$NFT_CONTRACT" "setApprovalForAll(address,bool)" "$RAFFLE" true \
-  --rpc-url "$ROBINHOOD_RPC_URL" --account ruxxell-deployer --sender <addr>
+  --rpc-url "$ROBINHOOD_RPC_URL" --account ruxxell-deployer
 
 # b) deposit the token IDs you're raffling, e.g. 1..10
 cast send "$RAFFLE" "depositPrizes(uint256[])" "[1,2,3,4,5,6,7,8,9,10]" \
-  --rpc-url "$ROBINHOOD_RPC_URL" --account ruxxell-deployer --sender <addr>
+  --rpc-url "$ROBINHOOD_RPC_URL" --account ruxxell-deployer
 ```
 
 > If you'd rather keep a Safe and batch-send from it instead, the contract
@@ -91,7 +91,7 @@ cast send "$RAFFLE" "depositPrizes(uint256[])" "[1,2,3,4,5,6,7,8,9,10]" \
 
 ```bash
 cast send "$RAFFLE" "openEntries(uint256)" 1800 \
-  --rpc-url "$ROBINHOOD_RPC_URL" --account ruxxell-deployer --sender <addr>
+  --rpc-url "$ROBINHOOD_RPC_URL" --account ruxxell-deployer
 # 1800 seconds = 30 minutes. Entries accepted until it elapses.
 ```
 
@@ -106,7 +106,7 @@ out of gas; call again until nothing's left.
 
 ```bash
 cast send "$RAFFLE" "distribute(uint256)" 50 \
-  --rpc-url "$ROBINHOOD_RPC_URL" --account ruxxell-deployer --sender <addr>
+  --rpc-url "$ROBINHOOD_RPC_URL" --account ruxxell-deployer
 # repeat until remainingToDistribute() returns 0:
 cast call "$RAFFLE" "remainingToDistribute()(uint256)" --rpc-url "$ROBINHOOD_RPC_URL"
 ```
@@ -118,7 +118,7 @@ vault (`0xCedBE9a8b29d4E80f04eb6718B2510fc66F7EFE2`, hardcoded in the contract).
 
 ```bash
 cast send "$RAFFLE" "sweepUnclaimed()" \
-  --rpc-url "$ROBINHOOD_RPC_URL" --account ruxxell-deployer --sender <addr>
+  --rpc-url "$ROBINHOOD_RPC_URL" --account ruxxell-deployer
 ```
 
 Done.
