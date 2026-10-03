@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { RAFFLE_ADDRESS, RAFFLE_ABI, RAFFLE_IS_SET } from "@/lib/raffleContract";
+import { RAFFLE_ADDRESS, RAFFLE_ABI, RAFFLE_IS_SET, CLAIM_SUPPLY } from "@/lib/raffleContract";
 
 const ZERO_ADDR = "0x0000000000000000000000000000000000000000" as const;
 
@@ -69,18 +69,6 @@ export default function Claim() {
   const closed = entryDeadline !== undefined && entryDeadline !== 0n && !windowOpen;
   const slotsFull = deposited !== undefined && entrants !== undefined && entrants >= deposited && deposited > 0n;
   const remainingMs = deadlineMs - now;
-
-  const spotsLeft =
-    deposited !== undefined && entrants !== undefined
-      ? deposited > entrants
-        ? deposited - entrants
-        : 0n
-      : undefined;
-
-  const pct =
-    deposited !== undefined && deposited > 0n && entrants !== undefined
-      ? Math.min(100, Number((entrants * 100n) / deposited))
-      : 0;
 
   // ---- countdown strip -----------------------------------------------------
   const phase = notOpenedYet ? "upcoming" : windowOpen ? "open" : "closed";
@@ -170,32 +158,36 @@ export default function Claim() {
           Ruxxell Claim
         </h1>
 
-        <div className="claimbar" data-phase={phase} data-urgent={urgent} role="timer" aria-live="off" style={{ marginTop: 34 }}>
+        <div
+          style={{
+            marginTop: 30,
+            border: "2px solid var(--line)",
+            background: "var(--panel)",
+            boxShadow: "8px 8px 0 rgba(0,0,0,0.55)",
+            overflow: "hidden",
+            aspectRatio: "16 / 9",
+          }}
+        >
+          <video
+            src="/ruxxells1.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          />
+        </div>
+
+        <div className="claimbar" data-phase={phase} data-urgent={urgent} role="timer" aria-live="off" style={{ marginTop: 24 }}>
           <span className="claimbar__k">{strip.k}</span>
           <time className="claimbar__t">{strip.t}</time>
         </div>
 
-        <div className="bar" style={{ marginTop: 20 }} aria-hidden="true">
-          <i style={{ width: `${pct}%` }} />
-        </div>
-        <p className="note" style={{ marginTop: 12 }}>
-          {deposited !== undefined && entrants !== undefined
-            ? `${entrants.toString()} / ${deposited.toString()} claimed`
-            : "—"}
-        </p>
-
-        <dl className="stats" style={{ marginTop: 28 }}>
+        <dl className="stats" style={{ marginTop: 24, gridTemplateColumns: "repeat(2, 1fr)" }}>
           <div className="stat">
             <dt>Supply</dt>
-            <dd>{deposited !== undefined ? deposited.toString() : "—"}</dd>
-          </div>
-          <div className="stat">
-            <dt>Claimed</dt>
-            <dd>{entrants !== undefined ? entrants.toString() : "—"}</dd>
-          </div>
-          <div className="stat">
-            <dt>Spots left</dt>
-            <dd>{spotsLeft !== undefined ? spotsLeft.toString() : "—"}</dd>
+            <dd>{CLAIM_SUPPLY}</dd>
           </div>
           <div className="stat">
             <dt>Price</dt>

@@ -12,6 +12,9 @@ export const RAFFLE_ADDRESS = (import.meta.env.VITE_RAFFLE_ADDRESS || ZERO) as `
 
 export const RAFFLE_IS_SET = RAFFLE_ADDRESS !== ZERO;
 
+/** Planned claim supply, shown on the claim page. */
+export const CLAIM_SUPPLY = 320;
+
 /**
  * Human-readable-free ABI (typed object form, like the Shuffler reference) so
  * wagmi infers return types. Only the surface the claim page needs, plus the
