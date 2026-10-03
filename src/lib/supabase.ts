@@ -9,8 +9,5 @@ export const supabaseReady = Boolean(url && key);
 /** Created lazily so a missing .env never breaks the page at import time. */
 export const supabase: SupabaseClient | null = supabaseReady ? createClient(url, key) : null;
 
-/**
- * Table the access list writes to. See the SQL file for schema and the
- * insert-only RLS policy for the anon role.
- */
+/** Access-list applications. Schema + insert-only RLS: supabase/schema.sql */
 export const ACCESS_TABLE = "ruxxells";
