@@ -1,9 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { RAFFLE_ADDRESS, RAFFLE_ABI, RAFFLE_IS_SET, CLAIM_SUPPLY } from "@/lib/raffleContract";
 
 const ZERO_ADDR = "0x0000000000000000000000000000000000000000" as const;
+
+type Allowlist = { root: string; count: number; proofs: Record<string, `0x${string}`[]> };
+
+/** Case-insensitive lookup of a wallet's proof in the allowlist. */
+function proofFor(allowlist: Allowlist | null, address?: string): `0x${string}`[] | null {
+  if (!allowlist || !address) return null;
+  const direct = allowlist.proofs[address];
+  if (direct) return direct;
+  const lower = address.toLowerCase();
+  for (const [k, v] of Object.entries(allowlist.proofs)) {
+    if (k.toLowerCase() === lower) return v;
+  }
+  return null;
+}
 
 function fmtHMS(ms: number): string {
   if (ms <= 0) return "00:00:00";
@@ -47,6 +61,29 @@ export default function Claim() {
   });
   const hasEntered = enteredData?.[0]?.result as boolean | undefined;
 
+  // Static allowlist: the proofs file dropped into public/ by the admin page.
+  const [allowlist, setAllowlist] = useState<Allowlist | null>(null);
+  const [allowlistLoaded, setAllowlistLoaded] = useState(false);
+  useEffect(() => {
+    let stop = false;
+    fetch("/allowlist.json")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (stop) return;
+        setAllowlist(j && j.proofs ? (j as Allowlist) : null);
+        setAllowlistLoaded(true);
+      })
+      .catch(() => {
+        if (!stop) setAllowlistLoaded(true);
+      });
+    return () => {
+      stop = true;
+    };
+  }, []);
+
+  const proof = useMemo(() => proofFor(allowlist, address ?? undefined), [allowlist, address]);
+  const eligible = proof !== null;
+
   const claimWrite = useWriteContract();
   const claimReceipt = useWaitForTransactionReceipt({ hash: claimWrite.data });
 
@@ -58,8 +95,9 @@ export default function Claim() {
   }, [claimReceipt.isSuccess, refetch, refetchEntered]);
 
   function claim() {
+    if (!proof) return;
     claimWrite.reset();
-    claimWrite.writeContract({ address: RAFFLE_ADDRESS, abi: RAFFLE_ABI, functionName: "enter" });
+    claimWrite.writeContract({ address: RAFFLE_ADDRESS, abi: RAFFLE_ABI, functionName: "enter", args: [proof] });
   }
 
   // ---- phase ---------------------------------------------------------------
@@ -105,14 +143,20 @@ export default function Claim() {
           } else if (chain.unsupported) {
             label = "Switch Network";
             onClick = openChainModal;
-          } else if (notOpenedYet) {
-            label = "Claim opens soon";
-            disabled = true;
           } else if (hasEntered) {
             label = "Claimed ✓";
             disabled = true;
+          } else if (notOpenedYet) {
+            label = "Claim opens soon";
+            disabled = true;
           } else if (closed) {
             label = "Claim closed";
+            disabled = true;
+          } else if (!allowlistLoaded) {
+            label = "Checking eligibility…";
+            disabled = true;
+          } else if (!eligible) {
+            label = "Not eligible";
             disabled = true;
           } else if (slotsFull) {
             label = "Fully claimed";
@@ -198,6 +242,11 @@ export default function Claim() {
         {hasEntered && (
           <div className="banner banner--ok" style={{ marginTop: 24, textAlign: "left" }}>
             You're in. Your Ruxxell is on the way — keep this wallet connected.
+          </div>
+        )}
+        {isConnected && allowlistLoaded && !hasEntered && windowOpen && !eligible && (
+          <div className="banner" style={{ marginTop: 24, textAlign: "left" }}>
+            This wallet isn't on the allowlist — only eligible wallets can claim.
           </div>
         )}
         {errMsg && (

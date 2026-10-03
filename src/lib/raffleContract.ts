@@ -31,8 +31,11 @@ export const RAFFLE_ABI = [
   { type: "function", name: "swept", stateMutability: "view", inputs: [], outputs: [{ type: "bool" }] },
   { type: "function", name: "owner", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
   { type: "function", name: "hasEntered", stateMutability: "view", inputs: [{ type: "address" }], outputs: [{ type: "bool" }] },
-  { type: "function", name: "enter", stateMutability: "nonpayable", inputs: [], outputs: [] },
-  // admin — not used by the public claim page, included for tooling/ref
+  { type: "function", name: "merkleRoot", stateMutability: "view", inputs: [], outputs: [{ type: "bytes32" }] },
+  { type: "function", name: "isEligible", stateMutability: "view", inputs: [{ type: "address" }, { type: "bytes32[]" }], outputs: [{ type: "bool" }] },
+  { type: "function", name: "enter", stateMutability: "nonpayable", inputs: [{ type: "bytes32[]", name: "proof" }], outputs: [] },
+  // admin — used by the /admin page
+  { type: "function", name: "setMerkleRoot", stateMutability: "nonpayable", inputs: [{ type: "bytes32" }], outputs: [] },
   { type: "function", name: "openEntries", stateMutability: "nonpayable", inputs: [{ type: "uint256" }], outputs: [] },
   { type: "function", name: "distribute", stateMutability: "nonpayable", inputs: [{ type: "uint256" }], outputs: [] },
   { type: "function", name: "sweepUnclaimed", stateMutability: "nonpayable", inputs: [], outputs: [] },

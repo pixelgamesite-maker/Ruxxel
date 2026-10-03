@@ -6,6 +6,7 @@ import Home from "@/pages/Home";
 import Checkpoint from "@/pages/Checkpoint";
 import Gallery from "@/pages/Gallery";
 import Claim from "@/pages/Claim";
+import Admin from "@/pages/Admin";
 import NotFound from "@/pages/NotFound";
 
 export default function App() {
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/checkpoint" component={Checkpoint} />
           <Route path="/gallery" component={Gallery} />
           <Route path="/claim" component={Claim} />
+          <Route path="/admin" component={Admin} />
           <Route component={NotFound} />
         </Switch>
       </main>

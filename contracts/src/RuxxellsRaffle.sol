@@ -119,11 +119,18 @@ contract RuxxellsRaffle is OwnableMinimal, ReentrancyGuardMinimal, IERC721Receiv
     /// @notice True once leftover NFTs have been swept to the team vault.
     bool public swept;
 
+    /// @notice Merkle root of the eligible-wallet allowlist. Only wallets with
+    /// a valid proof against this root can enter. Leaves are
+    /// keccak256(abi.encodePacked(wallet)); pairs are hashed sorted, matching
+    /// OpenZeppelin's MerkleProof and merkletreejs { sortPairs: true }.
+    bytes32 public merkleRoot;
+
     event Deposited(uint256 tokenId, uint256 totalDeposited);
     event EntriesOpened(uint256 deadline);
     event Entered(address indexed wallet, uint256 position);
     event Distributed(address indexed wallet, uint256 tokenId);
     event Swept(address indexed to, uint256 tokenId);
+    event MerkleRootSet(bytes32 root);
 
     error NoDeposits();
     error AlreadyOpened();
@@ -136,6 +143,8 @@ contract RuxxellsRaffle is OwnableMinimal, ReentrancyGuardMinimal, IERC721Receiv
     error NotFullyDistributed();
     error AlreadySwept();
     error WrongCollection();
+    error NotEligible();
+    error NoAllowlist();
 
     constructor(address nftContract, address initialOwner) OwnableMinimal(initialOwner) {
         if (nftContract == address(0)) revert ZeroAddress();
@@ -179,6 +188,34 @@ contract RuxxellsRaffle is OwnableMinimal, ReentrancyGuardMinimal, IERC721Receiv
         return IERC721ReceiverMinimal.onERC721Received.selector;
     }
 
+    /* ----------------------------- allowlist ---------------------------- */
+
+    /// @notice Set (or replace) the eligibility allowlist root. Can be called
+    /// before or after entries open — e.g. to upload the final list once it's
+    /// ready. Only the owner.
+    function setMerkleRoot(bytes32 root) external onlyOwner {
+        merkleRoot = root;
+        emit MerkleRootSet(root);
+    }
+
+    /// @dev Verifies `proof` proves `account` is a leaf of `merkleRoot`.
+    /// Sorted-pair hashing, so it matches OZ MerkleProof / merkletreejs.
+    function _verify(bytes32[] calldata proof, address account) internal view returns (bool) {
+        bytes32 computed = keccak256(abi.encodePacked(account));
+        for (uint256 i = 0; i < proof.length; i++) {
+            bytes32 p = proof[i];
+            computed = computed <= p
+                ? keccak256(abi.encodePacked(computed, p))
+                : keccak256(abi.encodePacked(p, computed));
+        }
+        return computed == merkleRoot;
+    }
+
+    /// @notice Convenience read for the UI: is `account` eligible with `proof`?
+    function isEligible(address account, bytes32[] calldata proof) external view returns (bool) {
+        return merkleRoot != bytes32(0) && _verify(proof, account);
+    }
+
     /* ----------------------------- entries ------------------------------ */
 
     /// @notice Opens the entry window for `durationSeconds` starting now.
@@ -190,10 +227,13 @@ contract RuxxellsRaffle is OwnableMinimal, ReentrancyGuardMinimal, IERC721Receiv
         emit EntriesOpened(entryDeadline);
     }
 
-    /// @notice Enter the raffle. One entry per wallet. Reverts once entries
-    /// have closed, or once every deposited NFT already has an entrant.
-    function enter() external nonReentrant {
+    /// @notice Enter the claim. Caller must be on the allowlist (valid `proof`
+    /// against `merkleRoot`). One entry per wallet. Reverts once entries have
+    /// closed, or once every deposited NFT already has an entrant.
+    function enter(bytes32[] calldata proof) external nonReentrant {
         if (entryDeadline == 0 || block.timestamp >= entryDeadline) revert EntriesNotOpen();
+        if (merkleRoot == bytes32(0)) revert NoAllowlist();
+        if (!_verify(proof, msg.sender)) revert NotEligible();
         if (hasEntered[msg.sender]) revert AlreadyEntered();
         if (entrants.length >= depositedTokenIds.length) revert RaffleFull();
 

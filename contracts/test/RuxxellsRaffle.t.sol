@@ -28,6 +28,31 @@ contract RuxxellsRaffleTest is Test {
         token.safeTransferFrom(owner, address(raffle), tokenId);
     }
 
+    /* ---- merkle allowlist helpers (2-leaf tree {a,b}) ------------------- */
+
+    function _leaf(address a) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(a));
+    }
+
+    /// Root of a 2-leaf tree over {a, b}, sorted-pair hashed.
+    function _root2(address a, address b) internal pure returns (bytes32) {
+        bytes32 la = _leaf(a);
+        bytes32 lb = _leaf(b);
+        return la <= lb ? keccak256(abi.encodePacked(la, lb)) : keccak256(abi.encodePacked(lb, la));
+    }
+
+    /// Proof for one leaf of a 2-leaf tree — just the other leaf.
+    function _proof1(address other) internal pure returns (bytes32[] memory p) {
+        p = new bytes32[](1);
+        p[0] = _leaf(other);
+    }
+
+    /// Set the allowlist to the 2-leaf tree {a, b}.
+    function _setAllowlist2(address a, address b) internal {
+        vm.prank(owner);
+        raffle.setMerkleRoot(_root2(a, b));
+    }
+
     function test_depositTracksTokens() public {
         _deposit(1);
         _deposit(2);
@@ -104,10 +129,12 @@ contract RuxxellsRaffleTest is Test {
         raffle.openEntries(30 minutes);
         assertTrue(raffle.isOpen());
 
+        _setAllowlist2(alice, bob);
+
         vm.prank(alice);
-        raffle.enter();
+        raffle.enter(_proof1(bob));
         vm.prank(bob);
-        raffle.enter();
+        raffle.enter(_proof1(alice));
 
         assertEq(raffle.entrantsCount(), 2);
         assertTrue(raffle.hasEntered(alice));
@@ -123,7 +150,7 @@ contract RuxxellsRaffleTest is Test {
         // entries closed now
         vm.prank(carol);
         vm.expectRevert(RuxxellsRaffle.EntriesNotOpen.selector);
-        raffle.enter();
+        raffle.enter(_proof1(alice));
 
         // distribute in batches of 1 to prove it's resumable
         vm.prank(owner);
@@ -147,26 +174,67 @@ contract RuxxellsRaffleTest is Test {
         _deposit(2);
         vm.prank(owner);
         raffle.openEntries(30 minutes);
+        _setAllowlist2(alice, bob);
 
         vm.prank(alice);
-        raffle.enter();
+        raffle.enter(_proof1(bob));
 
         vm.prank(alice);
         vm.expectRevert(RuxxellsRaffle.AlreadyEntered.selector);
-        raffle.enter();
+        raffle.enter(_proof1(bob));
     }
 
     function test_raffleFullOnceEntriesMatchSupply() public {
         _deposit(1);
         vm.prank(owner);
         raffle.openEntries(30 minutes);
+        _setAllowlist2(alice, bob);
 
         vm.prank(alice);
-        raffle.enter();
+        raffle.enter(_proof1(bob));
 
         vm.prank(bob);
         vm.expectRevert(RuxxellsRaffle.RaffleFull.selector);
-        raffle.enter();
+        raffle.enter(_proof1(alice));
+    }
+
+    function test_ineligibleCannotEnter() public {
+        _deposit(1);
+        _deposit(2);
+        vm.prank(owner);
+        raffle.openEntries(30 minutes);
+        _setAllowlist2(alice, bob);
+
+        // carol is not in the {alice, bob} tree
+        vm.prank(carol);
+        vm.expectRevert(RuxxellsRaffle.NotEligible.selector);
+        raffle.enter(_proof1(bob));
+    }
+
+    function test_enterRevertsWithoutAllowlist() public {
+        _deposit(1);
+        vm.prank(owner);
+        raffle.openEntries(30 minutes);
+        // no merkle root set
+
+        bytes32[] memory empty = new bytes32[](0);
+        vm.prank(alice);
+        vm.expectRevert(RuxxellsRaffle.NoAllowlist.selector);
+        raffle.enter(empty);
+    }
+
+    function test_singleLeafAllowlist_emptyProof() public {
+        _deposit(1);
+        vm.prank(owner);
+        raffle.openEntries(30 minutes);
+        // a 1-wallet allowlist: root == leaf, proof is empty
+        vm.prank(owner);
+        raffle.setMerkleRoot(_leaf(alice));
+
+        bytes32[] memory empty = new bytes32[](0);
+        vm.prank(alice);
+        raffle.enter(empty);
+        assertTrue(raffle.hasEntered(alice));
     }
 
     function test_sweepRequiresFullDistribution() public {
@@ -174,9 +242,10 @@ contract RuxxellsRaffleTest is Test {
         _deposit(2);
         vm.prank(owner);
         raffle.openEntries(30 minutes);
+        _setAllowlist2(alice, bob);
 
         vm.prank(alice);
-        raffle.enter();
+        raffle.enter(_proof1(bob));
 
         vm.warp(block.timestamp + 31 minutes);
 
@@ -189,9 +258,10 @@ contract RuxxellsRaffleTest is Test {
         _deposit(1);
         vm.prank(owner);
         raffle.openEntries(30 minutes);
+        _setAllowlist2(alice, bob);
 
         vm.prank(alice);
-        raffle.enter();
+        raffle.enter(_proof1(bob));
 
         vm.warp(block.timestamp + 31 minutes);
 
@@ -212,6 +282,10 @@ contract RuxxellsRaffleTest is Test {
         vm.prank(alice);
         vm.expectRevert(OwnableMinimal.NotOwner.selector);
         raffle.openEntries(30 minutes);
+
+        vm.prank(alice);
+        vm.expectRevert(OwnableMinimal.NotOwner.selector);
+        raffle.setMerkleRoot(_leaf(alice));
 
         vm.prank(owner);
         raffle.openEntries(30 minutes);
