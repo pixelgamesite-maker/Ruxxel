@@ -1,19 +1,17 @@
 import { Link } from "wouter";
-import { Mark } from "@/components/ui/Kit";
+import { ArrowRight } from "@/components/ui/Icons";
 
 export default function NotFound() {
   return (
-    <div className="nf">
-      <Mark size={44} />
-      <h1 style={{ fontSize: "clamp(1.8rem, 6vw, 2.6rem)", margin: "22px 0 12px" }}>
-        No world at this address.
-      </h1>
-      <p className="note" style={{ marginBottom: 26 }}>
-        Nothing has been excavated here yet.
-      </p>
-      <Link href="/" className="btn">
-        Back to the surface
-      </Link>
-    </div>
+    <section className="inset">
+      <div className="page-head">
+        <span className="tag">404</span>
+        <h1 className="display h-lg">Nothing here</h1>
+        <p className="lede">That room does not exist, or it has not been dug out yet.</p>
+        <Link href="/" className="btn btn--lime" style={{ marginTop: 40 }}>
+          Back to the gate <ArrowRight />
+        </Link>
+      </div>
+    </section>
   );
 }
