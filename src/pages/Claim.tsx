@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { RAFFLE_ADDRESS, RAFFLE_ABI, RAFFLE_IS_SET } from "@/lib/raffleContract";
-import { CLAIM, ROBINHOOD_CHAIN } from "@/data/chain";
+
+const ZERO_ADDR = "0x0000000000000000000000000000000000000000" as const;
 
 function fmtHMS(ms: number): string {
   if (ms <= 0) return "00:00:00";
@@ -23,17 +24,14 @@ export default function Claim() {
     return () => window.clearInterval(id);
   }, []);
 
-  // Batched raffle state — refetched every 15s so the UI stays live as other
-  // wallets enter and as the window / distribution progresses.
-  const raffle = { address: RAFFLE_ADDRESS, abi: RAFFLE_ABI } as const;
+  const contract = { address: RAFFLE_ADDRESS, abi: RAFFLE_ABI } as const;
   const { data, refetch } = useReadContracts({
     contracts: [
-      { ...raffle, functionName: "entryDeadline" },
-      { ...raffle, functionName: "isOpen" },
-      { ...raffle, functionName: "depositedCount" },
-      { ...raffle, functionName: "entrantsCount" },
-      { ...raffle, functionName: "remainingToDistribute" },
-      { ...raffle, functionName: "swept" },
+      { ...contract, functionName: "entryDeadline" },
+      { ...contract, functionName: "isOpen" },
+      { ...contract, functionName: "depositedCount" },
+      { ...contract, functionName: "entrantsCount" },
+      { ...contract, functionName: "swept" },
     ],
     query: { enabled: RAFFLE_IS_SET, refetchInterval: 15000 },
   });
@@ -42,179 +40,181 @@ export default function Claim() {
   const isOpen = data?.[1]?.result as boolean | undefined;
   const deposited = data?.[2]?.result as bigint | undefined;
   const entrants = data?.[3]?.result as bigint | undefined;
-  const remaining = data?.[4]?.result as bigint | undefined;
-  const swept = data?.[5]?.result as boolean | undefined;
 
   const { data: enteredData, refetch: refetchEntered } = useReadContracts({
-    contracts: [{ ...raffle, functionName: "hasEntered", args: [address ?? "0x0000000000000000000000000000000000000000"] }],
+    contracts: [{ ...contract, functionName: "hasEntered", args: [address ?? ZERO_ADDR] }],
     query: { enabled: RAFFLE_IS_SET && isConnected },
   });
   const hasEntered = enteredData?.[0]?.result as boolean | undefined;
 
-  const enterWrite = useWriteContract();
-  const enterReceipt = useWaitForTransactionReceipt({ hash: enterWrite.data });
+  const claimWrite = useWriteContract();
+  const claimReceipt = useWaitForTransactionReceipt({ hash: claimWrite.data });
 
-  // Once an entry confirms, pull fresh counts + entered status.
   useEffect(() => {
-    if (enterReceipt.isSuccess) {
+    if (claimReceipt.isSuccess) {
       refetch();
       refetchEntered();
     }
-  }, [enterReceipt.isSuccess, refetch, refetchEntered]);
+  }, [claimReceipt.isSuccess, refetch, refetchEntered]);
 
-  function enter() {
-    enterWrite.reset();
-    enterWrite.writeContract({ address: RAFFLE_ADDRESS, abi: RAFFLE_ABI, functionName: "enter" });
+  function claim() {
+    claimWrite.reset();
+    claimWrite.writeContract({ address: RAFFLE_ADDRESS, abi: RAFFLE_ABI, functionName: "enter" });
   }
 
-  // ---- derive a single phase for the window --------------------------------
+  // ---- phase ---------------------------------------------------------------
   const deadlineMs = entryDeadline !== undefined ? Number(entryDeadline) * 1000 : 0;
-  const notOpenedYet = entryDeadline !== undefined && entryDeadline === 0n;
+  const notOpenedYet = !RAFFLE_IS_SET || entryDeadline === undefined || entryDeadline === 0n;
   const windowOpen = isOpen === true;
   const closed = entryDeadline !== undefined && entryDeadline !== 0n && !windowOpen;
-  const slotsFull = deposited !== undefined && entrants !== undefined && entrants >= deposited;
+  const slotsFull = deposited !== undefined && entrants !== undefined && entrants >= deposited && deposited > 0n;
   const remainingMs = deadlineMs - now;
 
-  // ---- entry button state --------------------------------------------------
-  let label = "Connect wallet";
-  let disabled = false;
-  let onClick: (() => void) | undefined;
+  const spotsLeft =
+    deposited !== undefined && entrants !== undefined
+      ? deposited > entrants
+        ? deposited - entrants
+        : 0n
+      : undefined;
 
-  if (!RAFFLE_IS_SET) {
-    label = "Not live yet";
-    disabled = true;
-  } else if (!isConnected) {
-    // ConnectButton below handles the actual connect; this is just a hint.
-    label = "Connect wallet to enter";
-    disabled = true;
-  } else if (notOpenedYet) {
-    label = "Entries not open yet";
-    disabled = true;
-  } else if (hasEntered) {
-    label = "You're in ✓";
-    disabled = true;
-  } else if (closed) {
-    label = "Entries closed";
-    disabled = true;
-  } else if (slotsFull) {
-    label = "Raffle full";
-    disabled = true;
-  } else if (enterWrite.isPending) {
-    label = "Confirm in wallet…";
-    disabled = true;
-  } else if (enterReceipt.isLoading) {
-    label = "Entering…";
-    disabled = true;
-  } else if (windowOpen) {
-    label = "Enter raffle";
-    onClick = enter;
-  }
+  const pct =
+    deposited !== undefined && deposited > 0n && entrants !== undefined
+      ? Math.min(100, Number((entrants * 100n) / deposited))
+      : 0;
 
-  // ---- countdown strip copy ------------------------------------------------
-  const strip = notOpenedYet
-    ? { k: "Entries open soon", t: "--:--:--" }
-    : windowOpen
-      ? { k: "Entries close in", t: fmtHMS(remainingMs) }
-      : { k: "Entries closed", t: "00:00:00" };
+  // ---- countdown strip -----------------------------------------------------
+  const phase = notOpenedYet ? "upcoming" : windowOpen ? "open" : "closed";
+  const strip =
+    phase === "open"
+      ? { k: "Claim closes in", t: fmtHMS(remainingMs) }
+      : phase === "closed"
+        ? { k: "Claim closed", t: "00:00:00" }
+        : { k: "Claim opens soon", t: "--:--:--" };
+  const urgent = phase === "open" && remainingMs < 60_000;
 
   const errMsg =
-    (enterWrite.error as { shortMessage?: string } | null)?.shortMessage ??
-    (enterReceipt.error as { shortMessage?: string } | null)?.shortMessage;
+    (claimWrite.error as { shortMessage?: string } | null)?.shortMessage ??
+    (claimReceipt.error as { shortMessage?: string } | null)?.shortMessage;
+
+  // ---- the one big button, by state ---------------------------------------
+  function renderAction() {
+    return (
+      <ConnectButton.Custom>
+        {({ account, chain, openAccountModal, openChainModal, openConnectModal, mounted }) => {
+          const ready = mounted;
+          const connected = ready && !!account && !!chain;
+
+          let label = "Claim";
+          let disabled = false;
+          let onClick: (() => void) | undefined;
+
+          if (!ready) {
+            label = "Loading…";
+            disabled = true;
+          } else if (!connected) {
+            label = "Connect Wallet";
+            onClick = openConnectModal;
+          } else if (chain.unsupported) {
+            label = "Switch Network";
+            onClick = openChainModal;
+          } else if (notOpenedYet) {
+            label = "Claim opens soon";
+            disabled = true;
+          } else if (hasEntered) {
+            label = "Claimed ✓";
+            disabled = true;
+          } else if (closed) {
+            label = "Claim closed";
+            disabled = true;
+          } else if (slotsFull) {
+            label = "Fully claimed";
+            disabled = true;
+          } else if (claimWrite.isPending) {
+            label = "Confirm in wallet…";
+            disabled = true;
+          } else if (claimReceipt.isLoading) {
+            label = "Claiming…";
+            disabled = true;
+          } else if (windowOpen) {
+            label = "Claim";
+            onClick = claim;
+          } else {
+            label = "Claim unavailable";
+            disabled = true;
+          }
+
+          return (
+            <>
+              <button className="btn btn--lime btn--wide" onClick={onClick} disabled={disabled}>
+                {label}
+              </button>
+              {connected && !chain.unsupported && (
+                <div className="claim__row" style={{ justifyContent: "center", marginTop: 16 }}>
+                  <button className="claim__link" onClick={openAccountModal}>
+                    {account.displayName} · Manage
+                  </button>
+                </div>
+              )}
+            </>
+          );
+        }}
+      </ConnectButton.Custom>
+    );
+  }
 
   return (
-    <section className="band" style={{ paddingTop: "clamp(90px, 10vw, 140px)" }}>
-      <div className="wrap wrap--text">
-        <div className="head" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
-          <div>
-            <span className="mono">Raffle</span>
-            <h2>{CLAIM.label}</h2>
-            <p>
-              Connect your wallet and enter. If you're eligible you're in — every entrant is guaranteed one
-              Ruxxell. Entries run for a fixed window on {ROBINHOOD_CHAIN.name}; once it closes, NFTs are
-              distributed to everyone who entered.
-            </p>
-          </div>
-          <ConnectButton showBalance={false} chainStatus="icon" />
+    <section className="inset section">
+      <div className="claim" style={{ textAlign: "center" }}>
+        <span className="tag">Ruxxells</span>
+        <h1 className="claim__title px" style={{ marginTop: 16 }}>
+          Ruxxell Claim
+        </h1>
+
+        <div className="claimbar" data-phase={phase} data-urgent={urgent} role="timer" aria-live="off" style={{ marginTop: 34 }}>
+          <span className="claimbar__k">{strip.k}</span>
+          <time className="claimbar__t">{strip.t}</time>
         </div>
 
-        <div>
-          <div
-            style={{
-              background: "var(--glass)",
-              borderRadius: "var(--r-lg)",
-              boxShadow: "var(--shadow)",
-              padding: "26px",
-              display: "grid",
-              gap: "18px",
-            }}
-          >
-            {/* countdown strip */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "14px 18px",
-                borderRadius: "var(--r-md, 12px)",
-                background: windowOpen ? "rgba(57,224,122,0.1)" : "var(--ink-3, rgba(255,255,255,0.04))",
-                flexWrap: "wrap",
-                gap: 8,
-              }}
-            >
-              <span className="mono" style={{ color: windowOpen ? "var(--green)" : "var(--mute)" }}>
-                {strip.k}
-              </span>
-              <time className="mono" style={{ fontSize: "1.3rem", fontWeight: 700, letterSpacing: "0.04em" }}>
-                {strip.t}
-              </time>
-            </div>
-
-            <dl className="miner__kv" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
-              <div>
-                <dt>Prizes</dt>
-                <dd>{deposited !== undefined ? deposited.toString() : "—"}</dd>
-              </div>
-              <div>
-                <dt>Entrants</dt>
-                <dd>{entrants !== undefined ? entrants.toString() : "—"}</dd>
-              </div>
-              <div>
-                <dt>Spots left</dt>
-                <dd>
-                  {deposited !== undefined && entrants !== undefined
-                    ? (deposited > entrants ? (deposited - entrants).toString() : "0")
-                    : "—"}
-                </dd>
-              </div>
-            </dl>
-
-            {hasEntered && (
-              <div className="banner" style={{ background: "rgba(57,224,122,0.14)", color: "var(--green)" }}>
-                You're entered. {closed
-                  ? swept || (remaining !== undefined && remaining === 0n)
-                    ? "Distribution is complete — check your wallet."
-                    : "Entries are closed. Your Ruxxell is sent when the team runs distribution."
-                  : "Keep this wallet connected — your Ruxxell arrives after the window closes."}
-              </div>
-            )}
-
-            {errMsg && <div className="banner banner--err">{errMsg}</div>}
-
-            <button
-              className="btn btn--wide btn--xl"
-              onClick={onClick}
-              disabled={disabled || onClick === undefined}
-            >
-              {label}
-            </button>
-
-            <p className="note">
-              Raffle contract: <span className="mono">{RAFFLE_IS_SET ? `${RAFFLE_ADDRESS.slice(0, 6)}…${RAFFLE_ADDRESS.slice(-4)}` : "not deployed"}</span> on{" "}
-              {ROBINHOOD_CHAIN.name} (chain id {ROBINHOOD_CHAIN.chainId}). Entering costs only gas — there's no
-              entry fee.
-            </p>
-          </div>
+        <div className="bar" style={{ marginTop: 20 }} aria-hidden="true">
+          <i style={{ width: `${pct}%` }} />
         </div>
+        <p className="note" style={{ marginTop: 12 }}>
+          {deposited !== undefined && entrants !== undefined
+            ? `${entrants.toString()} / ${deposited.toString()} claimed`
+            : "—"}
+        </p>
+
+        <dl className="stats" style={{ marginTop: 28, gridTemplateColumns: "repeat(3, 1fr)" }}>
+          <div className="stat">
+            <dt>Supply</dt>
+            <dd>{deposited !== undefined ? deposited.toString() : "—"}</dd>
+          </div>
+          <div className="stat">
+            <dt>Claimed</dt>
+            <dd>{entrants !== undefined ? entrants.toString() : "—"}</dd>
+          </div>
+          <div className="stat">
+            <dt>Spots left</dt>
+            <dd>{spotsLeft !== undefined ? spotsLeft.toString() : "—"}</dd>
+          </div>
+        </dl>
+
+        {hasEntered && (
+          <div className="banner banner--ok" style={{ marginTop: 24, textAlign: "left" }}>
+            You're in. Your Ruxxell is on the way — keep this wallet connected.
+          </div>
+        )}
+        {errMsg && (
+          <div className="banner" style={{ marginTop: 24, textAlign: "left" }}>
+            {errMsg}
+          </div>
+        )}
+
+        <div style={{ marginTop: 32, display: "grid", justifyItems: "center" }}>{renderAction()}</div>
+
+        <p className="note" style={{ marginTop: 20 }}>
+          Free · one per wallet
+        </p>
       </div>
     </section>
   );
