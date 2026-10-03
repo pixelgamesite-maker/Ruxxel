@@ -1,7 +1,7 @@
 {
   "name": "ruxxells",
   "private": true,
-  "version": "2.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,9 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@fontsource/jetbrains-mono": "^5.1.0",
-    "@fontsource/press-start-2p": "^5.3.0",
     "@supabase/supabase-js": "^2.45.4",
+    "ethers": "^6.13.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "wouter": "^3.3.5"
