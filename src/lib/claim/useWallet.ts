@@ -18,11 +18,13 @@ type Eip1193 = {
   removeListener?(event: string, handler: (...args: unknown[]) => void): void;
 };
 
-declare global {
-  interface Window {
-    ethereum?: Eip1193;
-  }
-}
+/**
+ * `window.ethereum`'s global type now comes from wagmi's own dependencies
+ * (viem/Coinbase Wallet SDK), so this file no longer declares it itself --
+ * that caused a type conflict with their declaration. This helper just
+ * narrows it back to the shape this file actually uses.
+ */
+const getEthereum = (): Eip1193 | undefined => window.ethereum as Eip1193 | undefined;
 
 const REMEMBER = "ruxxells_wallet_connected_v1";
 const MOCK_ADDR = "ruxxells_mock_wallet_v1";
@@ -44,10 +46,11 @@ export function useWallet() {
   // Restore a previous connection without prompting.
   useEffect(() => {
     if (localStorage.getItem(REMEMBER) !== "1") return;
-    if (window.ethereum) {
-      window.ethereum
+    const eth = getEthereum();
+    if (eth) {
+      eth
         .request({ method: "eth_accounts" })
-        .then((a) => {
+        .then((a: unknown) => {
           const first = (a as string[])[0];
           if (first) setAddress(first.toLowerCase());
         })
@@ -59,7 +62,7 @@ export function useWallet() {
 
   // Follow account switches made inside the wallet.
   useEffect(() => {
-    const eth = window.ethereum;
+    const eth = getEthereum();
     if (!eth?.on) return;
     const onAccounts = (...args: unknown[]) => {
       const first = (args[0] as string[] | undefined)?.[0];
@@ -74,8 +77,9 @@ export function useWallet() {
     setError("");
     setConnecting(true);
     try {
-      if (window.ethereum) {
-        const a = (await window.ethereum.request({ method: "eth_requestAccounts" })) as string[];
+      const eth = getEthereum();
+      if (eth) {
+        const a = (await eth.request({ method: "eth_requestAccounts" })) as string[];
         if (!a[0]) throw new Error("no account");
         setAddress(a[0].toLowerCase());
       } else if (claimMode === "mock") {
@@ -102,12 +106,13 @@ export function useWallet() {
   const signMessage = useCallback(
     async (message: string): Promise<string> => {
       if (!address) throw new ClaimError("rejected");
-      if (!window.ethereum) {
+      const eth = getEthereum();
+      if (!eth) {
         if (claimMode === "mock") return "0xmocksignature";
         throw new ClaimError("rejected");
       }
       try {
-        return (await window.ethereum.request({
+        return (await eth.request({
           method: "personal_sign",
           params: [message, address],
         })) as string;

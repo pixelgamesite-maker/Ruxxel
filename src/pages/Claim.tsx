@@ -1,3 +1,4 @@
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useClaim } from "@/components/claim/useClaim";
 import { CLAIM, ROBINHOOD_CHAIN } from "@/data/chain";
 
@@ -40,13 +41,16 @@ export default function Claim() {
   return (
     <section className="band" style={{ paddingTop: "clamp(90px, 10vw, 140px)" }}>
       <div className="wrap wrap--text">
-        <div className="head">
-          <span className="mono">Test claim</span>
-          <h2>{CLAIM.label}</h2>
-          <p>
-            A free, one-per-wallet claim on {ROBINHOOD_CHAIN.name} — used to test the mint flow before the real
-            Ruxxells drop.
-          </p>
+        <div className="head" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+          <div>
+            <span className="mono">Test claim</span>
+            <h2>{CLAIM.label}</h2>
+            <p>
+              A free, one-per-wallet claim on {ROBINHOOD_CHAIN.name} — used to test the mint flow before the real
+              Ruxxells drop.
+            </p>
+          </div>
+          <ConnectButton showBalance={false} chainStatus="icon" />
         </div>
 
         <div>

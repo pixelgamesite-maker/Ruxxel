@@ -19,11 +19,13 @@ interface EthereumProvider {
   removeListener?: (event: string, cb: (...args: unknown[]) => void) => void;
 }
 
-declare global {
-  interface Window {
-    ethereum?: EthereumProvider;
-  }
-}
+/**
+ * `window.ethereum`'s global type now comes from wagmi's own dependencies
+ * (viem/Coinbase Wallet SDK), so this file no longer declares it itself --
+ * that caused a type conflict with their declaration. This helper just
+ * narrows it back to the shape this file actually uses.
+ */
+const getEthereum = (): EthereumProvider | undefined => window.ethereum as EthereumProvider | undefined;
 
 export function useClaim() {
   const [address, setAddress] = useState<string | null>(null);
@@ -34,14 +36,15 @@ export function useClaim() {
   const [owned, setOwned] = useState<number>(0);
   const [txHash, setTxHash] = useState<string>("");
 
-  const hasWallet = typeof window !== "undefined" && !!window.ethereum;
+  const hasWallet = typeof window !== "undefined" && !!getEthereum();
 
   const loadDrop = useCallback(async (acct: string) => {
-    if (!window.ethereum) return;
+    const eth = getEthereum();
+    if (!eth) return;
     setPhase("loading");
     setError("");
     try {
-      const provider = new BrowserProvider(window.ethereum);
+      const provider = new BrowserProvider(eth);
       const nft = new Contract(CLAIM.nftContract, SEADROP_NFT_ABI, provider);
 
       const [name, allowed, balance] = await Promise.all([
@@ -75,14 +78,15 @@ export function useClaim() {
   }, []);
 
   const ensureChain = useCallback(async () => {
-    if (!window.ethereum) return false;
-    const currentHex = (await window.ethereum.request({ method: "eth_chainId" })) as string;
+    const eth = getEthereum();
+    if (!eth) return false;
+    const currentHex = (await eth.request({ method: "eth_chainId" })) as string;
     if (currentHex?.toLowerCase() === ROBINHOOD_CHAIN.chainIdHex.toLowerCase()) {
       setOnRightChain(true);
       return true;
     }
     try {
-      await window.ethereum.request({
+      await eth.request({
         method: "wallet_switchEthereumChain",
         params: [{ chainId: ROBINHOOD_CHAIN.chainIdHex }],
       });
@@ -91,7 +95,7 @@ export function useClaim() {
     } catch (switchErr) {
       const code = (switchErr as { code?: number })?.code;
       if (code === 4902) {
-        await window.ethereum.request({
+        await eth.request({
           method: "wallet_addEthereumChain",
           params: [
             {
@@ -113,7 +117,8 @@ export function useClaim() {
   }, []);
 
   const connect = useCallback(async () => {
-    if (!window.ethereum) {
+    const eth = getEthereum();
+    if (!eth) {
       setError("No wallet found. Install MetaMask or another EVM wallet extension.");
       setPhase("error");
       return;
@@ -121,7 +126,7 @@ export function useClaim() {
     setPhase("connecting");
     setError("");
     try {
-      const accounts = (await window.ethereum.request({ method: "eth_requestAccounts" })) as string[];
+      const accounts = (await eth.request({ method: "eth_requestAccounts" })) as string[];
       const acct = accounts?.[0];
       if (!acct) throw new Error("No account returned by wallet.");
       setAddress(acct);
@@ -139,11 +144,12 @@ export function useClaim() {
   }, [ensureChain, loadDrop]);
 
   const claim = useCallback(async () => {
-    if (!window.ethereum || !address || !drop) return;
+    const eth = getEthereum();
+    if (!eth || !address || !drop) return;
     setPhase("minting");
     setError("");
     try {
-      const provider = new BrowserProvider(window.ethereum);
+      const provider = new BrowserProvider(eth);
       const signer = await provider.getSigner();
       const seadrop = new Contract(drop.seadrop, SEADROP_ABI, signer);
 
@@ -165,7 +171,8 @@ export function useClaim() {
 
   // Keep in sync if the user switches accounts or networks in their wallet.
   useEffect(() => {
-    if (!window.ethereum?.on) return;
+    const eth = getEthereum();
+    if (!eth?.on) return;
     const onAccounts = (...args: unknown[]) => {
       const accounts = args[0] as string[];
       if (!accounts?.length) {
@@ -179,11 +186,11 @@ export function useClaim() {
     const onChain = () => {
       void ensureChain();
     };
-    window.ethereum.on("accountsChanged", onAccounts);
-    window.ethereum.on("chainChanged", onChain);
+    eth.on("accountsChanged", onAccounts);
+    eth.on("chainChanged", onChain);
     return () => {
-      window.ethereum?.removeListener?.("accountsChanged", onAccounts);
-      window.ethereum?.removeListener?.("chainChanged", onChain);
+      eth.removeListener?.("accountsChanged", onAccounts);
+      eth.removeListener?.("chainChanged", onChain);
     };
   }, [ensureChain, loadDrop]);
 
