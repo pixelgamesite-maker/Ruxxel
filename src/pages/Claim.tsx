@@ -1,4 +1,3 @@
-import { Head, Rise } from "@/components/ui/Kit";
 import { useClaim } from "@/components/claim/useClaim";
 import { CLAIM, ROBINHOOD_CHAIN } from "@/data/chain";
 
@@ -41,15 +40,16 @@ export default function Claim() {
   return (
     <section className="band" style={{ paddingTop: "clamp(90px, 10vw, 140px)" }}>
       <div className="wrap wrap--text">
-        <Rise>
-          <Head
-            eyebrow="Test claim"
-            title={CLAIM.label}
-            body={`A free, one-per-wallet claim on ${ROBINHOOD_CHAIN.name} — used to test the mint flow before the real Ruxxells drop.`}
-          />
-        </Rise>
+        <div className="head">
+          <span className="mono">Test claim</span>
+          <h2>{CLAIM.label}</h2>
+          <p>
+            A free, one-per-wallet claim on {ROBINHOOD_CHAIN.name} — used to test the mint flow before the real
+            Ruxxells drop.
+          </p>
+        </div>
 
-        <Rise delay={80}>
+        <div>
           <div
             style={{
               background: "var(--glass)",
@@ -105,7 +105,7 @@ export default function Claim() {
               If your wallet isn't on that network yet, connecting will prompt you to switch or add it.
             </p>
           </div>
-        </Rise>
+        </div>
       </div>
     </section>
   );
