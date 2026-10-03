@@ -21,10 +21,7 @@ export const COLLECTION = {
 /** Robinhood Chain mainnet explorer (Blockscout). */
 export const EXPLORER_TX = "https://robinhoodchain.blockscout.com/tx/";
 
-export const NAV = [
-  { href: "/checkpoint", label: "Checkpoint", primary: true },
-  { href: "/gallery", label: "Gallery", primary: false },
-];
+export const NAV: { href: string; label: string; primary: boolean }[] = [];
 
 /** Flip to true when the free claim opens, so it shows in the top bar. */
 export const SHOW_CLAIM_IN_NAV = false;

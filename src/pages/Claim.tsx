@@ -209,7 +209,6 @@ export default function Claim() {
             background: "var(--panel)",
             boxShadow: "8px 8px 0 rgba(0,0,0,0.55)",
             overflow: "hidden",
-            aspectRatio: "16 / 9",
           }}
         >
           <video
@@ -219,7 +218,7 @@ export default function Claim() {
             loop
             playsInline
             preload="metadata"
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            style={{ width: "100%", height: "auto", display: "block" }}
           />
         </div>
 
