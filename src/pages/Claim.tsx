@@ -184,7 +184,7 @@ export default function Claim() {
             : "—"}
         </p>
 
-        <dl className="stats" style={{ marginTop: 28, gridTemplateColumns: "repeat(3, 1fr)" }}>
+        <dl className="stats" style={{ marginTop: 28 }}>
           <div className="stat">
             <dt>Supply</dt>
             <dd>{deposited !== undefined ? deposited.toString() : "—"}</dd>
@@ -196,6 +196,10 @@ export default function Claim() {
           <div className="stat">
             <dt>Spots left</dt>
             <dd>{spotsLeft !== undefined ? spotsLeft.toString() : "—"}</dd>
+          </div>
+          <div className="stat">
+            <dt>Price</dt>
+            <dd>Free</dd>
           </div>
         </dl>
 
