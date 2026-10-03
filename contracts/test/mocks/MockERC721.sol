@@ -38,7 +38,14 @@ contract MockERC721 {
                     ""
                 )
             );
-            require(ok, "receiver reverted");
+            if (!ok) {
+                // Bubble up the receiver's revert reason verbatim, the way a
+                // real ERC721 safeTransferFrom does, so custom errors from
+                // onERC721Received survive for vm.expectRevert to match.
+                assembly {
+                    revert(add(ret, 0x20), mload(ret))
+                }
+            }
             bytes4 selector = abi.decode(ret, (bytes4));
             require(selector == 0x150b7a02, "bad selector");
         }
