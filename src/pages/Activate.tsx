@@ -1,56 +1,81 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
-import { useAccount, useReadContract, useReadContracts } from "wagmi";
+import { useAccount, useReadContract } from "wagmi";
 import { COLLECTION_ADDRESS, COLLECTION_ABI, resolveUri } from "@/lib/collection";
+import { ROBINHOOD_CHAIN } from "@/data/chain";
 import { Eyes } from "@/components/ui/Icons";
 
 const ZERO_ADDR = "0x0000000000000000000000000000000000000000" as const;
+
+type NftItem = { id: string; image: string | null };
 
 export default function Activate() {
   const { address, isConnected } = useAccount();
   const { openConnectModal } = useConnectModal();
   const [activated, setActivated] = useState(false);
 
-  const collection = { address: COLLECTION_ADDRESS, abi: COLLECTION_ABI } as const;
-
-  // All tokenIds this wallet holds (ERC721A-Queryable, one call).
-  const { data: ownedData, isLoading: loadingIds } = useReadContract({
-    ...collection,
-    functionName: "tokensOfOwner",
+  // Reliable count straight from the collection.
+  const { data: balData } = useReadContract({
+    address: COLLECTION_ADDRESS,
+    abi: COLLECTION_ABI,
+    functionName: "balanceOf",
     args: [address ?? ZERO_ADDR],
     query: { enabled: isConnected },
   });
-  const tokenIds = useMemo(() => (ownedData as bigint[] | undefined) ?? [], [ownedData]);
+  const balance = balData !== undefined ? Number(balData) : undefined;
 
-  // tokenURI for each owned token, to pull images.
-  const { data: uriData } = useReadContracts({
-    contracts: tokenIds.map((id) => ({ ...collection, functionName: "tokenURI" as const, args: [id] })),
-    query: { enabled: tokenIds.length > 0 },
-  });
-
-  // Resolve each tokenURI -> metadata JSON -> image url (best effort).
-  const [images, setImages] = useState<Record<string, string>>({});
+  // The wallet's Ruxxells (ids + images) from the Robinhood Chain explorer's
+  // NFT index — the collection doesn't expose tokensOfOwner, so we use this.
+  const [items, setItems] = useState<NftItem[] | null>(null);
   useEffect(() => {
-    if (!uriData) return;
+    if (!isConnected || !address) {
+      setItems(null);
+      return;
+    }
     let stop = false;
-    uriData.forEach((res, i) => {
-      const uri = res?.result as string | undefined;
-      const id = tokenIds[i]?.toString();
-      if (!uri || !id) return;
-      fetch(resolveUri(uri))
-        .then((r) => (r.ok ? r.json() : null))
-        .then((meta) => {
-          if (stop || !meta?.image) return;
-          setImages((prev) => ({ ...prev, [id]: resolveUri(meta.image) }));
-        })
-        .catch(() => undefined);
-    });
+    setItems(null);
+    const base = ROBINHOOD_CHAIN.blockExplorerUrls[0].replace(/\/$/, "");
+    const want = COLLECTION_ADDRESS.toLowerCase();
+
+    (async () => {
+      const found: NftItem[] = [];
+      let url: string | null = `${base}/api/v2/addresses/${address}/nft?type=ERC-721`;
+      let pages = 0;
+      try {
+        while (url && pages < 8) {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error("explorer");
+          const json: {
+            items?: Array<{ id?: string | number; image_url?: string; metadata?: { image?: string }; token?: { address?: string } }>;
+            next_page_params?: Record<string, string | number> | null;
+          } = await res.json();
+          for (const it of json.items ?? []) {
+            if ((it.token?.address ?? "").toLowerCase() !== want) continue;
+            const img = it.image_url || resolveUri(it.metadata?.image ?? "") || null;
+            found.push({ id: String(it.id ?? ""), image: img });
+          }
+          const npp = json.next_page_params;
+          url = npp
+            ? `${base}/api/v2/addresses/${address}/nft?type=ERC-721&${new URLSearchParams(
+                Object.fromEntries(Object.entries(npp).map(([k, v]) => [k, String(v)])),
+              ).toString()}`
+            : null;
+          pages++;
+        }
+        if (!stop) setItems(found);
+      } catch {
+        if (!stop) setItems([]); // fall back to the balanceOf count below
+      }
+    })();
+
     return () => {
       stop = true;
     };
-  }, [uriData, tokenIds]);
+  }, [isConnected, address]);
 
-  const count = tokenIds.length;
+  const loading = isConnected && items === null;
+  const count = items && items.length > 0 ? items.length : balance ?? 0;
+  const hasNfts = count > 0;
 
   return (
     <section className="inset section">
@@ -63,11 +88,13 @@ export default function Activate() {
             ACTIVATE GRID
           </h1>
           <p className="claim__sub" style={{ marginTop: 16, marginInline: "auto", maxWidth: "28em" }}>
-            {isConnected
-              ? count > 0
-                ? "Your Ruxxells are ready. Activate the grid to bring them online."
-                : "No Ruxxells in this wallet."
-              : "Connect your wallet to see your Ruxxells and activate the grid."}
+            {!isConnected
+              ? "Connect your wallet to see your Ruxxells and activate the grid."
+              : loading
+                ? "Scanning the grid for your Ruxxells…"
+                : hasNfts
+                  ? "Your Ruxxells are ready. Activate the grid to bring them online."
+                  : "No Ruxxells in this wallet."}
           </p>
         </div>
 
@@ -79,51 +106,40 @@ export default function Activate() {
           </div>
         )}
 
-        {isConnected && loadingIds && (
+        {isConnected && loading && (
           <p className="note" style={{ textAlign: "center" }}>
             Loading your Ruxxells…
           </p>
         )}
 
-        {isConnected && !loadingIds && count > 0 && (
+        {isConnected && !loading && hasNfts && (
           <>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
-                gap: 16,
-              }}
-            >
-              {tokenIds.map((id) => {
-                const key = id.toString();
-                const img = images[key];
-                return (
-                  <div
-                    key={key}
-                    style={{
-                      border: "2px solid var(--line)",
-                      background: "var(--panel)",
-                      boxShadow: "6px 6px 0 rgba(0,0,0,0.55)",
-                    }}
-                  >
+            {items && items.length > 0 ? (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 16 }}>
+                {items.map(({ id, image }) => (
+                  <div key={id} style={{ border: "2px solid var(--line)", background: "var(--panel)", boxShadow: "6px 6px 0 rgba(0,0,0,0.55)" }}>
                     <div style={{ aspectRatio: "1 / 1", background: "var(--bg)", display: "grid", placeItems: "center", overflow: "hidden" }}>
-                      {img ? (
-                        <img src={img} alt={`Ruxxell #${key}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
+                      {image ? (
+                        <img src={image} alt={`Ruxxell #${id}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
                       ) : (
                         <span className="px" style={{ fontSize: 13, color: "var(--faint)" }}>
-                          #{key}
+                          #{id}
                         </span>
                       )}
                     </div>
                     <div style={{ padding: "10px 12px" }}>
                       <span className="mono" style={{ fontSize: 12, color: "var(--lime)" }}>
-                        RUXX #{key}
+                        RUXX #{id}
                       </span>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="note" style={{ textAlign: "center" }}>
+                You hold {count} Ruxxell{count === 1 ? "" : "s"}.
+              </p>
+            )}
 
             <div style={{ display: "grid", justifyItems: "center", marginTop: 32, gap: 14 }}>
               {activated ? (
