@@ -19,12 +19,25 @@ function proofFor(allowlist: Allowlist | null, address?: string): `0x${string}`[
   return null;
 }
 
+function fmtHMS(ms: number): string {
+  if (ms <= 0) return "00:00:00";
+  const s = Math.floor(ms / 1000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
+}
+
 export default function Claim() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { openConnectModal } = useConnectModal();
   const { openChainModal } = useChainModal();
   const { openAccountModal } = useAccountModal();
+
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
 
   const contract = { address: RAFFLE_ADDRESS, abi: RAFFLE_ABI } as const;
   const { data, refetch } = useReadContracts({
@@ -52,7 +65,6 @@ export default function Claim() {
   const hasEntered = enteredData?.[0]?.result as boolean | undefined;
   const distributedToMe = enteredData?.[1]?.result as boolean | undefined;
 
-  // Static allowlist file dropped into public/ by the admin page.
   const [allowlist, setAllowlist] = useState<Allowlist | null>(null);
   const [allowlistLoaded, setAllowlistLoaded] = useState(false);
   useEffect(() => {
@@ -75,7 +87,6 @@ export default function Claim() {
 
   const claimWrite = useWriteContract();
   const claimReceipt = useWaitForTransactionReceipt({ hash: claimWrite.data });
-
   useEffect(() => {
     if (claimReceipt.isSuccess) {
       refetch();
@@ -89,18 +100,26 @@ export default function Claim() {
     claimWrite.writeContract({ ...contract, functionName: "enter", args: [proof] });
   }
 
-  // ---- phase + view --------------------------------------------------------
+  // ---- window phase (global) ----------------------------------------------
   const notOpenedYet = !RAFFLE_IS_SET || entryDeadline === undefined || entryDeadline === 0n;
   const windowOpen = isOpen === true;
   const closed = entryDeadline !== undefined && entryDeadline !== 0n && !windowOpen;
+  const remainingMs = entryDeadline !== undefined ? Number(entryDeadline) * 1000 - now : 0;
+
+  const headLabel = windowOpen ? "CLAIM · CLOSES IN" : closed ? "CLAIM CLOSED" : "CLAIM OPENS SOON";
+  const headTime = windowOpen ? fmtHMS(remainingMs) : closed ? "00:00:00" : "SOON";
+  const headPhase = windowOpen ? "open" : closed ? "closed" : "upcoming";
+  const urgent = windowOpen && remainingMs < 60_000;
+
+  // ---- user flow ----------------------------------------------------------
   const slotsFull = deposited !== undefined && entrants !== undefined && deposited > 0n && entrants >= deposited;
   const onWrongChain = isConnected && chainId !== ROBINHOOD_CHAIN.chainId;
+  const justEntered = claimReceipt.isSuccess;
+  const claiming = claimWrite.isPending || claimReceipt.isLoading;
 
   type View =
-    | "upcoming" | "closed" | "connect" | "switch" | "checking" | "ineligible" | "full" | "ready" | "entering" | "waiting" | "complete";
-
-  const justEntered = claimReceipt.isSuccess; // enter() tx landed this session
-  const claiming = claimWrite.isPending || claimReceipt.isLoading;
+    | "complete" | "waiting" | "entering" | "upcoming" | "closed"
+    | "connect" | "switch" | "checking" | "ineligible" | "full" | "ready";
 
   let view: View;
   if (distributedToMe) view = "complete";
@@ -119,116 +138,173 @@ export default function Claim() {
     (claimWrite.error as { shortMessage?: string } | null)?.shortMessage ??
     (claimReceipt.error as { shortMessage?: string } | null)?.shortMessage;
 
-  // ---- per-view content ----------------------------------------------------
-  let headline = "FREE CLAIM";
-  let sub: string | null = null;
-  let barLabel: string | null = null;
-  let showBar = false;
-  let action: ReactNode = null;
-
-  const bigBtn = (label: string, onClick: (() => void) | undefined) => (
-    <button className="btn btn--lime btn--wide" onClick={onClick} disabled={!onClick}>
+  const bigBtn = (label: string, onClick: (() => void) | undefined, ghost = false) => (
+    <button className={`btn ${ghost ? "btn--ghost" : "btn--lime"} btn--wide`} onClick={onClick} disabled={!onClick}>
       {label}
     </button>
   );
 
+  // Body (middle of the card) + action, by state.
+  let body: ReactNode = null;
+  let action: ReactNode = null;
+  let note = "Free · 1 per wallet";
+
+  const entriesBox = (
+    <div style={{ display: "grid", gap: 14, justifyItems: "center" }}>
+      <span className="claimbar__k">Entries per user</span>
+      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <button className="btn btn--ghost" disabled style={{ width: 54, height: 54, padding: 0, fontSize: 20 }}>
+          −
+        </button>
+        <div
+          style={{
+            minWidth: 96,
+            height: 54,
+            display: "grid",
+            placeItems: "center",
+            border: "2px solid var(--line)",
+            background: "var(--bg)",
+            fontFamily: "var(--display)",
+            fontSize: 18,
+          }}
+        >
+          1
+        </div>
+        <button className="btn btn--ghost" disabled style={{ width: 54, height: 54, padding: 0, fontSize: 20 }}>
+          +
+        </button>
+      </div>
+    </div>
+  );
+
+  const pulseBar = (
+    <div style={{ display: "grid", gap: 12, width: "100%" }}>
+      <span className="claimbar__k" style={{ textAlign: "center" }}>
+        The grid is activating
+      </span>
+      <div className="bar bar--pulse" aria-hidden="true">
+        <i />
+      </div>
+    </div>
+  );
+
   switch (view) {
     case "upcoming":
-      headline = "FREE CLAIM";
-      sub = "Claiming opens soon.";
+      body = entriesBox;
+      action = bigBtn("Claim opens soon", undefined);
       break;
     case "closed":
-      headline = "CLAIM CLOSED";
-      sub = "This claim has ended.";
+      body = entriesBox;
+      action = bigBtn("Claim closed", undefined);
       break;
     case "connect":
-      headline = "FREE CLAIM";
-      sub = "Connect your approved wallet to check eligibility.";
+      body = entriesBox;
       action = bigBtn("Connect Wallet", openConnectModal);
       break;
     case "switch":
-      headline = "WRONG NETWORK";
-      sub = `Switch to ${ROBINHOOD_CHAIN.name} to continue.`;
+      body = entriesBox;
       action = bigBtn("Switch Network", openChainModal);
       break;
     case "checking":
-      headline = "CHECKING…";
-      sub = "Verifying your wallet.";
-      showBar = true;
+      body = entriesBox;
+      action = bigBtn("Checking eligibility…", undefined);
       break;
     case "ineligible":
-      headline = "NOT ON THE GRID";
-      sub = "This wallet isn't on the approved list.";
-      action = (
-        <button className="btn btn--ghost btn--wide" onClick={openAccountModal}>
-          Use another wallet
-        </button>
+      body = (
+        <p className="claim__sub" style={{ margin: 0 }}>
+          This wallet isn't on the approved list.
+        </p>
       );
+      action = bigBtn("Use another wallet", openAccountModal, true);
       break;
     case "full":
-      headline = "FULLY CLAIMED";
-      sub = "Every Ruxxell has been claimed.";
+      body = (
+        <p className="claim__sub" style={{ margin: 0 }}>
+          Every Ruxxell has been claimed.
+        </p>
+      );
       break;
     case "ready":
-      headline = "YOU'RE APPROVED";
-      sub = "Claim your free Ruxxell.";
+      body = entriesBox;
       action = bigBtn("Claim", claim);
       break;
     case "entering":
-      headline = "ENTERING THE GRID…";
-      sub = "Confirm in your wallet.";
-      showBar = true;
+      body = pulseBar;
+      action = bigBtn("Confirm in wallet…", undefined);
       break;
     case "waiting":
-      headline = "CLAIMED";
-      sub = "You're in. Your Ruxxell is sent when the grid activates — you can close this page and come back.";
-      barLabel = "THE GRID IS ACTIVATING";
-      showBar = true;
+      body = (
+        <div style={{ display: "grid", gap: 16, width: "100%" }}>
+          <p className="claim__sub" style={{ margin: 0, textAlign: "center" }}>
+            You're in. Your Ruxxell is sent when the grid activates — you can close this page and come back.
+          </p>
+          {pulseBar}
+        </div>
+      );
+      note = "Claimed · 1 per wallet";
       break;
     case "complete":
-      headline = "CLAIM COMPLETE";
-      sub = "Your Ruxxell is now in your wallet.";
+      body = (
+        <p className="claim__sub" style={{ margin: 0, textAlign: "center" }}>
+          Your Ruxxell is now in your wallet.
+        </p>
+      );
       action = (
         <a className="btn btn--lime btn--wide" href={shareUrl()} target="_blank" rel="noopener noreferrer">
           Share on X
         </a>
       );
+      note = "Claim complete";
       break;
   }
 
+  const titleMap: Record<View, string> = {
+    complete: "CLAIM COMPLETE",
+    waiting: "CLAIMED",
+    entering: "ENTERING THE GRID…",
+    upcoming: "FREE CLAIM",
+    closed: "CLAIM CLOSED",
+    connect: "FREE CLAIM",
+    switch: "WRONG NETWORK",
+    checking: "FREE CLAIM",
+    ineligible: "NOT ON THE GRID",
+    full: "FULLY CLAIMED",
+    ready: "YOU'RE APPROVED",
+  };
+
   return (
     <section className="inset section">
-      <div className="claim" style={{ textAlign: "center" }}>
-        <span className="tag">Ruxxells</span>
-        <h1 className="claim__title px" style={{ marginTop: 14 }}>
-          {headline}
-        </h1>
-        {sub && (
-          <p className="claim__sub" style={{ marginTop: 18, marginInline: "auto", maxWidth: "26em" }}>
-            {sub}
-          </p>
-        )}
+      <div className="claim">
+        <div style={{ textAlign: "center", marginBottom: 24 }}>
+          <span className="tag">Ruxxells</span>
+          <h1 className="claim__title px" style={{ marginTop: 12 }}>
+            {titleMap[view]}
+          </h1>
+        </div>
 
-        {action && <div style={{ marginTop: 30, display: "grid", justifyItems: "center" }}>{action}</div>}
+        <div className="claim__panel" style={{ justifyItems: "stretch", gap: 24 }}>
+          {/* countdown header */}
+          <div className="claimbar" data-phase={headPhase} data-urgent={urgent} role="timer" aria-live="off">
+            <span className="claimbar__k">{headLabel}</span>
+            <time className="claimbar__t">{headTime}</time>
+          </div>
 
-        {showBar && (
-          <div style={{ marginTop: 32 }}>
-            {barLabel && (
-              <p className="claimbar__k" style={{ marginBottom: 12, textAlign: "center" }}>
-                {barLabel}
-              </p>
-            )}
-            <div className="bar bar--pulse" aria-hidden="true">
-              <i />
+          {/* body */}
+          <div style={{ display: "grid", justifyItems: "center", gap: 18 }}>{body}</div>
+
+          {/* action */}
+          {action && <div style={{ display: "grid" }}>{action}</div>}
+
+          {errMsg && (view === "ready" || view === "entering") && (
+            <div className="banner" style={{ textAlign: "left" }}>
+              {errMsg}
             </div>
-          </div>
-        )}
+          )}
 
-        {errMsg && (view === "ready" || view === "entering") && (
-          <div className="banner" style={{ marginTop: 24, textAlign: "left" }}>
-            {errMsg}
-          </div>
-        )}
+          <p className="note" style={{ margin: 0, textAlign: "center" }}>
+            {note}
+          </p>
+        </div>
       </div>
     </section>
   );
