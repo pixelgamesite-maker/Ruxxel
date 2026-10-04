@@ -16,6 +16,22 @@ export const RAFFLE_IS_SET = RAFFLE_ADDRESS !== ZERO;
 export const CLAIM_SUPPLY = 320;
 
 /**
+ * "Share on X" after a completed claim. To make it quote your "mint is live"
+ * tweet, paste that tweet's URL into `quoteUrl` — X renders it as a quote.
+ * Leave quoteUrl empty for a plain post.
+ */
+export const SHARE = {
+  text: "I just claimed my Ruxxell. The grid is live. gm.",
+  quoteUrl: "",
+};
+
+export function shareUrl(): string {
+  const params = new URLSearchParams({ text: SHARE.text });
+  if (SHARE.quoteUrl) params.set("url", SHARE.quoteUrl);
+  return `https://twitter.com/intent/tweet?${params.toString()}`;
+}
+
+/**
  * Human-readable-free ABI (typed object form, like the Shuffler reference) so
  * wagmi infers return types. Only the surface the claim page needs, plus the
  * admin calls for completeness.

@@ -513,6 +513,11 @@ button { font: inherit; color: inherit; }
 .bar { width: 100%; height: 14px; background: var(--line); }
 .bar i { display: block; height: 100%; background: var(--lime); background-image: repeating-linear-gradient(90deg, transparent 0 10px, rgba(0, 0, 0, 0.25) 10px 12px); transition: width 0.25s linear; }
 
+/* decorative "grid activating" bar — not real progress, just a vibe */
+.bar--pulse i { width: 72%; animation: gridPulse 3s ease-in-out infinite; }
+@keyframes gridPulse { 0%, 100% { width: 16%; } 50% { width: 88%; } }
+@media (prefers-reduced-motion: reduce) { .bar--pulse i { animation: none; width: 72%; } }
+
 .blink { animation: blink 1.1s steps(2) infinite; }
 @keyframes blink { 50% { opacity: 0.35; } }
 
