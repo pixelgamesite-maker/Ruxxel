@@ -10,12 +10,12 @@ export const BRAND = {
 };
 
 export const COLLECTION = {
-  supply: 1970,
-  supplyLabel: "1,970",
-  mintPrice: "TBA",
+  supply: 320,
+  supplyLabel: "320",
+  mintPrice: "Free",
   chainShort: "Robinhood",
   /** Shown next to "Minting on Robinhood". */
-  mintStatus: "Closed",
+  mintStatus: "Claim",
 };
 
 /** Robinhood Chain mainnet explorer (Blockscout). */
