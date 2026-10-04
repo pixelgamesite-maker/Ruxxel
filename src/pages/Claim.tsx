@@ -227,7 +227,7 @@ export default function Claim() {
   switch (view) {
     case "upcoming":
       body = entriesBox;
-      action = bigBtn("Claim opens soon", undefined);
+      action = isConnected ? bigBtn("Claim opens soon", undefined) : bigBtn("Connect Wallet", openConnectModal);
       break;
     case "closed":
       body = entriesBox;
@@ -294,6 +294,24 @@ export default function Claim() {
       break;
   }
 
+  // The line under the button becomes the eligibility status once connected —
+  // works even before the claim opens. (Not in the claimed/complete states,
+  // which keep their own note.)
+  let noteColor: string | undefined;
+  if (view !== "waiting" && view !== "complete") {
+    if (!isConnected) {
+      note = "Connect to check eligibility";
+    } else if (!allowlistLoaded) {
+      note = "Checking eligibility…";
+    } else if (eligible) {
+      note = "Ruxxlisted";
+      noteColor = "var(--lime)";
+    } else {
+      note = "Better luck next time";
+      noteColor = "var(--faint)";
+    }
+  }
+
   const titleMap: Record<View, string> = {
     complete: "CLAIM COMPLETE",
     waiting: "CLAIMED",
@@ -344,7 +362,7 @@ export default function Claim() {
             </div>
           )}
 
-          <p className="note" style={{ margin: 0, textAlign: "center" }}>
+          <p className="note" style={{ margin: 0, textAlign: "center", color: noteColor, fontWeight: noteColor === "var(--lime)" ? 700 : undefined, letterSpacing: noteColor ? "0.08em" : undefined, textTransform: noteColor ? "uppercase" : undefined }}>
             {note}
           </p>
         </div>
