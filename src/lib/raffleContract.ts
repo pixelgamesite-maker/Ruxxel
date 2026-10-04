@@ -16,6 +16,14 @@ export const RAFFLE_IS_SET = RAFFLE_ADDRESS !== ZERO;
 export const CLAIM_SUPPLY = 320;
 
 /**
+ * Scheduled open time — informational only. The claim truly opens when the
+ * admin calls openEntries; this just drives the pre-open countdown and is
+ * shown in each visitor's OWN local timezone (like a Discord timestamp).
+ * Edit this to the real open time. Must be a UTC instant (the trailing Z).
+ */
+export const CLAIM_OPENS_AT = new Date("2026-10-04T16:00:00Z");
+
+/**
  * "Share on X" after a completed claim. To make it quote your "mint is live"
  * tweet, paste that tweet's URL into `quoteUrl` — X renders it as a quote.
  * Leave quoteUrl empty for a plain post.

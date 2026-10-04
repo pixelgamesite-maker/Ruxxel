@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useConnectModal, useChainModal, useAccountModal } from "@rainbow-me/rainbowkit";
 import { useAccount, useChainId, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { RAFFLE_ADDRESS, RAFFLE_ABI, RAFFLE_IS_SET, shareUrl } from "@/lib/raffleContract";
+import { RAFFLE_ADDRESS, RAFFLE_ABI, RAFFLE_IS_SET, shareUrl, CLAIM_OPENS_AT } from "@/lib/raffleContract";
 import { ROBINHOOD_CHAIN } from "@/data/chain";
 
 const ZERO_ADDR = "0x0000000000000000000000000000000000000000" as const;
@@ -25,6 +25,26 @@ function fmtHMS(ms: number): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
 }
+
+/** Countdown that also shows days when more than 24h out. */
+function fmtCountdown(ms: number): string {
+  if (ms <= 0) return "00:00:00";
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const hms = `${pad(Math.floor((s % 86400) / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
+  return d > 0 ? `${d}d ${hms}` : hms;
+}
+
+/** The scheduled open time in the VIEWER's own local timezone (Discord-style). */
+const LOCAL_OPEN_TIME = CLAIM_OPENS_AT.toLocaleString(undefined, {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  timeZoneName: "short",
+});
 
 export default function Claim() {
   const { address, isConnected } = useAccount();
@@ -106,8 +126,24 @@ export default function Claim() {
   const closed = entryDeadline !== undefined && entryDeadline !== 0n && !windowOpen;
   const remainingMs = entryDeadline !== undefined ? Number(entryDeadline) * 1000 - now : 0;
 
-  const headLabel = windowOpen ? "CLAIM · CLOSES IN" : closed ? "CLAIM CLOSED" : "CLAIM OPENS SOON";
-  const headTime = windowOpen ? fmtHMS(remainingMs) : closed ? "00:00:00" : "SOON";
+  // Pre-open: count down to the scheduled open time (informational).
+  const opensInMs = CLAIM_OPENS_AT.getTime() - now;
+  const countingToOpen = !windowOpen && !closed && opensInMs > 0;
+
+  const headLabel = windowOpen
+    ? "CLAIM · CLOSES IN"
+    : closed
+      ? "CLAIM CLOSED"
+      : countingToOpen
+        ? "CLAIM OPENS IN"
+        : "CLAIM OPENS SOON";
+  const headTime = windowOpen
+    ? fmtHMS(remainingMs)
+    : closed
+      ? "00:00:00"
+      : countingToOpen
+        ? fmtCountdown(opensInMs)
+        : "SOON";
   const headPhase = windowOpen ? "open" : closed ? "closed" : "upcoming";
   const urgent = windowOpen && remainingMs < 60_000;
 
@@ -288,6 +324,13 @@ export default function Claim() {
             <span className="claimbar__k">{headLabel}</span>
             <time className="claimbar__t">{headTime}</time>
           </div>
+
+          {/* scheduled open time, in the viewer's own local timezone */}
+          {!windowOpen && !closed && (
+            <p className="note" style={{ margin: "-8px 0 0", textAlign: "center" }}>
+              Opens {LOCAL_OPEN_TIME} — your local time
+            </p>
+          )}
 
           {/* body */}
           <div style={{ display: "grid", justifyItems: "center", gap: 18 }}>{body}</div>
