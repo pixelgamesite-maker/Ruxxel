@@ -43,10 +43,14 @@ export default function Claim() {
   const entrants = data?.[3]?.result as bigint | undefined;
 
   const { data: enteredData, refetch: refetchEntered } = useReadContracts({
-    contracts: [{ ...contract, functionName: "hasEntered", args: [address ?? ZERO_ADDR] }],
-    query: { enabled: RAFFLE_IS_SET && isConnected },
+    contracts: [
+      { ...contract, functionName: "hasEntered", args: [address ?? ZERO_ADDR] },
+      { ...contract, functionName: "distributed", args: [address ?? ZERO_ADDR] },
+    ],
+    query: { enabled: RAFFLE_IS_SET && isConnected, refetchInterval: 15000 },
   });
   const hasEntered = enteredData?.[0]?.result as boolean | undefined;
+  const distributedToMe = enteredData?.[1]?.result as boolean | undefined;
 
   // Static allowlist file dropped into public/ by the admin page.
   const [allowlist, setAllowlist] = useState<Allowlist | null>(null);
@@ -93,12 +97,15 @@ export default function Claim() {
   const onWrongChain = isConnected && chainId !== ROBINHOOD_CHAIN.chainId;
 
   type View =
-    | "upcoming" | "closed" | "connect" | "switch" | "checking" | "ineligible" | "full" | "ready" | "entering" | "finalizing" | "complete";
+    | "upcoming" | "closed" | "connect" | "switch" | "checking" | "ineligible" | "full" | "ready" | "entering" | "waiting" | "complete";
+
+  const justEntered = claimReceipt.isSuccess; // enter() tx landed this session
+  const claiming = claimWrite.isPending || claimReceipt.isLoading;
 
   let view: View;
-  if (hasEntered || claimReceipt.isSuccess) view = "complete";
-  else if (claimReceipt.isLoading) view = "finalizing";
-  else if (claimWrite.isPending) view = "entering";
+  if (distributedToMe) view = "complete";
+  else if (hasEntered || justEntered) view = "waiting";
+  else if (claiming) view = "entering";
   else if (notOpenedYet) view = "upcoming";
   else if (closed) view = "closed";
   else if (!isConnected) view = "connect";
@@ -129,8 +136,6 @@ export default function Claim() {
     case "upcoming":
       headline = "FREE CLAIM";
       sub = "Claiming opens soon.";
-      barLabel = "THE GRID IS ACTIVATING";
-      showBar = true;
       break;
     case "closed":
       headline = "CLAIM CLOSED";
@@ -140,8 +145,6 @@ export default function Claim() {
       headline = "FREE CLAIM";
       sub = "Connect your approved wallet to check eligibility.";
       action = bigBtn("Connect Wallet", openConnectModal);
-      barLabel = "THE GRID IS ACTIVATING";
-      showBar = true;
       break;
     case "switch":
       headline = "WRONG NETWORK";
@@ -176,9 +179,10 @@ export default function Claim() {
       sub = "Confirm in your wallet.";
       showBar = true;
       break;
-    case "finalizing":
-      headline = "FINALIZING…";
-      sub = "Writing your claim on-chain.";
+    case "waiting":
+      headline = "CLAIMED";
+      sub = "You're in. Your Ruxxell is sent when the grid activates — you can close this page and come back.";
+      barLabel = "THE GRID IS ACTIVATING";
       showBar = true;
       break;
     case "complete":
@@ -220,7 +224,7 @@ export default function Claim() {
           </div>
         )}
 
-        {errMsg && (view === "ready" || view === "entering" || view === "finalizing") && (
+        {errMsg && (view === "ready" || view === "entering") && (
           <div className="banner" style={{ marginTop: 24, textAlign: "left" }}>
             {errMsg}
           </div>

@@ -47,6 +47,7 @@ export const RAFFLE_ABI = [
   { type: "function", name: "swept", stateMutability: "view", inputs: [], outputs: [{ type: "bool" }] },
   { type: "function", name: "owner", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
   { type: "function", name: "hasEntered", stateMutability: "view", inputs: [{ type: "address" }], outputs: [{ type: "bool" }] },
+  { type: "function", name: "distributed", stateMutability: "view", inputs: [{ type: "address" }], outputs: [{ type: "bool" }] },
   { type: "function", name: "merkleRoot", stateMutability: "view", inputs: [], outputs: [{ type: "bytes32" }] },
   { type: "function", name: "isEligible", stateMutability: "view", inputs: [{ type: "address" }, { type: "bytes32[]" }], outputs: [{ type: "bool" }] },
   { type: "function", name: "enter", stateMutability: "nonpayable", inputs: [{ type: "bytes32[]", name: "proof" }], outputs: [] },

@@ -156,11 +156,14 @@ contract RuxxellsRaffleTest is Test {
         vm.prank(owner);
         raffle.distribute(1);
         assertEq(token.ownerOf(1), alice);
+        assertTrue(raffle.distributed(alice));
+        assertFalse(raffle.distributed(bob));
         assertEq(raffle.remainingToDistribute(), 1);
 
         vm.prank(owner);
         raffle.distribute(10); // more than remaining, should just finish
         assertEq(token.ownerOf(2), bob);
+        assertTrue(raffle.distributed(bob));
         assertEq(raffle.remainingToDistribute(), 0);
 
         // token 3 was never entered for -- sweep it to the vault

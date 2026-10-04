@@ -109,6 +109,10 @@ contract RuxxellsRaffle is OwnableMinimal, ReentrancyGuardMinimal, IERC721Receiv
     /// @notice Whether a wallet has already entered (one entry per wallet).
     mapping(address => bool) public hasEntered;
 
+    /// @notice Whether a wallet's NFT has been sent to it in distribution.
+    /// Lets the UI tell "entered, waiting" apart from "received".
+    mapping(address => bool) public distributed;
+
     /// @notice Unix timestamp entries close at. 0 means entries haven't opened.
     uint256 public entryDeadline;
 
@@ -261,6 +265,7 @@ contract RuxxellsRaffle is OwnableMinimal, ReentrancyGuardMinimal, IERC721Receiv
         for (uint256 i = start; i < end; i++) {
             address who = entrants[i];
             uint256 tokenId = depositedTokenIds[i];
+            distributed[who] = true;
             nft.safeTransferFrom(address(this), who, tokenId);
             emit Distributed(who, tokenId);
         }
