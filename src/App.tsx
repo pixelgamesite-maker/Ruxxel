@@ -6,6 +6,7 @@ import Home from "@/pages/Home";
 import Checkpoint from "@/pages/Checkpoint";
 import Gallery from "@/pages/Gallery";
 import Claim from "@/pages/Claim";
+import Activate from "@/pages/Activate";
 import Admin from "@/pages/Admin";
 import NotFound from "@/pages/NotFound";
 
@@ -20,6 +21,7 @@ export default function App() {
           <Route path="/checkpoint" component={Checkpoint} />
           <Route path="/gallery" component={Gallery} />
           <Route path="/claim" component={Claim} />
+          <Route path="/activate" component={Activate} />
           <Route path="/admin" component={Admin} />
           <Route component={NotFound} />
         </Switch>

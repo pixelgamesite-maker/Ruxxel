@@ -16,11 +16,11 @@ export default function Gate() {
       <h2 className="display h-xl">The gate is open</h2>
 
       <div className="gate__cta">
-        <Link href="/checkpoint" className="btn btn--lime">
-          Get cleared <ArrowRight />
+        <Link href="/claim" className="btn btn--lime">
+          Claim <ArrowRight />
         </Link>
-        <Link href="/gallery" className="btn btn--ghost">
-          The collection
+        <Link href="/activate" className="btn btn--ghost">
+          Activate Grid
         </Link>
       </div>
 
