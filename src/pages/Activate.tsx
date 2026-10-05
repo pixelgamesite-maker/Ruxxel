@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
-import { COLLECTION_ADDRESS, COLLECTION_ABI, resolveUri } from "@/lib/collection";
-import { STAKING_ABI, STAKING_ADDRESS, STAKING_IS_SET, LOCK_DAYS, POINTS_PER_DAY, timeLeft } from "@/lib/stakingContract";
-import { ROBINHOOD_CHAIN } from "@/data/chain";
+import { COLLECTION_ADDRESS, COLLECTION_ABI } from "@/lib/collection";
+import { fetchCollectionNfts, type NftItem } from "@/lib/collectionNfts";
+import { STAKING_ABI, STAKING_ADDRESS, STAKING_IS_SET, LOCK_DAYS, POINTS_PER_DAY } from "@/lib/stakingContract";
 import { Eyes } from "@/components/ui/Icons";
+import LockPicker from "@/components/staking/LockPicker";
+import StakeCard from "@/components/staking/StakeCard";
 
 const ZERO_ADDR = "0x0000000000000000000000000000000000000000" as const;
 
-type NftItem = { id: string; image: string | null };
-type StakedItem = { id: string; unlock: number; earned: number };
+type StakedItem = { id: string; start: number; unlock: number };
 
 const card = { border: "2px solid var(--line)", background: "var(--panel)", boxShadow: "6px 6px 0 rgba(0,0,0,0.55)" } as const;
 const grid = { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 16 } as const;
@@ -51,40 +52,9 @@ export default function Activate() {
       return;
     }
     let stop = false;
-    const base = ROBINHOOD_CHAIN.blockExplorerUrls[0].replace(/\/$/, "");
-    const want = COLLECTION_ADDRESS.toLowerCase();
-
-    (async () => {
-      const found: NftItem[] = [];
-      let url: string | null = `${base}/api/v2/addresses/${address}/nft?type=ERC-721`;
-      let pages = 0;
-      try {
-        while (url && pages < 8) {
-          const res = await fetch(url);
-          if (!res.ok) throw new Error("explorer");
-          const json: {
-            items?: Array<{ id?: string | number; image_url?: string; metadata?: { image?: string }; token?: { address?: string } }>;
-            next_page_params?: Record<string, string | number> | null;
-          } = await res.json();
-          for (const it of json.items ?? []) {
-            if ((it.token?.address ?? "").toLowerCase() !== want) continue;
-            const img = it.image_url || resolveUri(it.metadata?.image ?? "") || null;
-            found.push({ id: String(it.id ?? ""), image: img });
-          }
-          const npp = json.next_page_params;
-          url = npp
-            ? `${base}/api/v2/addresses/${address}/nft?type=ERC-721&${new URLSearchParams(
-                Object.fromEntries(Object.entries(npp).map(([k, v]) => [k, String(v)])),
-              ).toString()}`
-            : null;
-          pages++;
-        }
-        if (!stop) setItems(found);
-      } catch {
-        if (!stop) setItems([]);
-      }
-    })();
-
+    fetchCollectionNfts(address)
+      .then((found) => !stop && setItems(found))
+      .catch(() => !stop && setItems([]));
     return () => {
       stop = true;
     };
@@ -118,17 +88,31 @@ export default function Activate() {
 
   const staked: StakedItem[] = useMemo(() => {
     if (!stakedData) return [];
-    const [ids, , unlocks, earned] = stakedData;
-    return ids.map((id, i) => ({ id: id.toString(), unlock: Number(unlocks[i]), earned: Number(earned[i]) }));
+    const [ids, starts, unlocks] = stakedData;
+    return ids.map((id, i) => ({ id: id.toString(), start: Number(starts[i]), unlock: Number(unlocks[i]) }));
   }, [stakedData]);
 
   // The explorer index can lag right after a stake/unstake, so trust the contract.
   const stakedIds = useMemo(() => new Set(staked.map((s) => s.id)), [staked]);
   const walletItems = useMemo(() => (items ?? []).filter((i) => !stakedIds.has(i.id)), [items, stakedIds]);
 
+  // Staked NFTs sit in the contract, so read their art from the contract's holdings.
+  const [stakedArt, setStakedArt] = useState<Record<string, string | null>>({});
+  const stakedKey = staked.map((x) => x.id).join(",");
+  useEffect(() => {
+    if (!stakingOn || stakedKey === "") return;
+    let stop = false;
+    fetchCollectionNfts(STAKING_ADDRESS)
+      .then((found) => !stop && setStakedArt(Object.fromEntries(found.map((n) => [n.id, n.image]))))
+      .catch(() => {});
+    return () => {
+      stop = true;
+    };
+  }, [stakingOn, stakedKey]);
+
   const loading = isConnected && items === null;
   const points = pointsData !== undefined ? Number(pointsData) : 0;
-  const unlockedIds = staked.filter((s) => s.unlock <= now).map((s) => s.id);
+  const unlockedIds = staked.filter((x) => x.unlock <= now).map((x) => x.id);
   const selCount = selected.size;
 
   const toggle = (id: string) =>
@@ -248,30 +232,15 @@ export default function Activate() {
                 <h2 className="px" style={{ fontSize: 13, marginBottom: 16 }}>
                   MINING
                 </h2>
-                <div style={grid}>
-                  {staked.map((s) => {
-                    const open = s.unlock <= now;
-                    return (
-                      <div key={s.id} style={card}>
-                        <div style={{ padding: "12px" }}>
-                          <div className="mono" style={{ fontSize: 12, color: "var(--lime)" }}>
-                            RUXX #{s.id}
-                          </div>
-                          <div className="note" style={{ margin: "8px 0" }}>
-                            {s.earned.toLocaleString()} pts
-                          </div>
-                          <div className="mono" style={{ fontSize: 12, color: "var(--mute)" }}>
-                            {open ? "Unlocked" : timeLeft(s.unlock, now)}
-                          </div>
-                          {open && (
-                            <button className="btn btn--ghost btn--sm btn--wide" style={{ marginTop: 10 }} disabled={!!busy} onClick={() => unstake([s.id])}>
-                              Unstake
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="stakelist">
+                  {staked.map((x) => (
+                    <StakeCard
+                      key={x.id}
+                      stake={{ id: x.id, image: stakedArt[x.id] ?? null, start: x.start, unlock: x.unlock }}
+                      busy={!!busy}
+                      onUnstake={() => unstake([x.id])}
+                    />
+                  ))}
                 </div>
                 {unlockedIds.length > 1 && (
                   <div style={{ display: "grid", justifyItems: "center", marginTop: 20 }}>
@@ -324,13 +293,7 @@ export default function Activate() {
 
                 {/* lock + stake */}
                 <div style={{ display: "grid", justifyItems: "center", marginTop: 32, gap: 14 }}>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-                    {LOCK_DAYS.map((d) => (
-                      <button key={d} type="button" className={`btn btn--sm ${lockDays === d ? "btn--lime" : "btn--ghost"}`} onClick={() => setLockDays(d)}>
-                        {d} days
-                      </button>
-                    ))}
-                  </div>
+                  <LockPicker value={lockDays} onChange={setLockDays} />
 
                   {approved === false ? (
                     <button className="btn btn--lime btn--wide" style={{ maxWidth: 480 }} disabled={!!busy} onClick={approve}>
