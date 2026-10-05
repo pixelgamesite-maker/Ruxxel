@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { COLLECTION_ADDRESS, COLLECTION_ABI } from "@/lib/collection";
-import { fetchCollectionNfts, type NftItem } from "@/lib/collectionNfts";
+import { loadOwnedNfts, type NftItem } from "@/lib/collectionNfts";
 import { STAKING_ABI, STAKING_ADDRESS, STAKING_IS_SET, LOCK_DAYS, POINTS_PER_DAY } from "@/lib/stakingContract";
 import { Eyes } from "@/components/ui/Icons";
 import LockPicker from "@/components/staking/LockPicker";
@@ -52,13 +52,13 @@ export default function Activate() {
       return;
     }
     let stop = false;
-    fetchCollectionNfts(address)
+    loadOwnedNfts(publicClient, address)
       .then((found) => !stop && setItems(found))
       .catch(() => !stop && setItems([]));
     return () => {
       stop = true;
     };
-  }, [isConnected, address, refresh]);
+  }, [isConnected, address, refresh, publicClient]);
 
   /* ------------------------------------------------------------ staking -- */
 
@@ -102,13 +102,13 @@ export default function Activate() {
   useEffect(() => {
     if (!stakingOn || stakedKey === "") return;
     let stop = false;
-    fetchCollectionNfts(STAKING_ADDRESS)
+    loadOwnedNfts(publicClient, STAKING_ADDRESS)
       .then((found) => !stop && setStakedArt(Object.fromEntries(found.map((n) => [n.id, n.image]))))
       .catch(() => {});
     return () => {
       stop = true;
     };
-  }, [stakingOn, stakedKey]);
+  }, [stakingOn, stakedKey, publicClient]);
 
   const loading = isConnected && items === null;
   const points = pointsData !== undefined ? Number(pointsData) : 0;
