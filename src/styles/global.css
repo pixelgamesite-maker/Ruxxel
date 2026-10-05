@@ -578,3 +578,40 @@ button { font: inherit; color: inherit; }
 
 /* sector art sits flush inside its card */
 .sector__art .frame { border: 0; box-shadow: none; }
+
+/* ------------------------------------------------------------- staking -- */
+
+.pill { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border: 2px solid var(--line); font-size: 11px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--mute); white-space: nowrap; }
+.pill--lime { border-color: var(--lime); color: var(--lime); }
+
+.lockpick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; width: 100%; max-width: 640px; }
+.lockpick__tile { display: grid; gap: 8px; padding: 14px 10px; border: 2px solid var(--line); background: var(--panel); color: var(--text); font-family: var(--mono); cursor: pointer; text-align: center; box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.55); transition: transform 0.08s steps(2), border-color 0.12s; }
+.lockpick__tile:hover { border-color: var(--lime); }
+.lockpick__tile[data-on="true"] { border-color: var(--lime); background: var(--lime); color: var(--lime-ink); transform: translate(-2px, -2px); box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.7); }
+.lockpick__days { font-size: 11px; }
+.lockpick__pts { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--lime); }
+.lockpick__tile[data-on="true"] .lockpick__pts { color: var(--lime-ink); }
+
+.stakelist { display: grid; gap: 16px; }
+.stakecard { display: grid; grid-template-columns: 88px 1fr auto auto; gap: 20px; align-items: center; padding: 16px 18px; border: 2px solid var(--line); background: var(--panel); box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.55); }
+.stakecard[data-unlocked="true"] { border-color: var(--lime); }
+.stakecard__art { width: 88px; height: 88px; display: block; overflow: hidden; background: var(--bg); border: 2px solid var(--line-soft); }
+.stakecard__art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.stakecard__art .placeholder { display: grid; place-items: center; width: 100%; height: 100%; font-family: var(--display); font-size: 11px; color: var(--faint); }
+.stakecard__main { min-width: 0; display: grid; gap: 10px; }
+.stakecard__name { margin: 0; font-size: 13px; color: var(--lime); }
+.stakecard__pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.stakecard__bar { height: 6px; background: var(--line-soft); }
+.stakecard__bar span { display: block; height: 100%; background: var(--lime); }
+.stakecard__stats { display: flex; gap: 26px; margin: 0; }
+.stakecard__stats dt { font-size: 11px; font-weight: 700; letter-spacing: 0.26em; text-transform: uppercase; color: #a3cc02; }
+.stakecard__stats dd { margin: 8px 0 0; font-family: var(--display); font-size: 12px; letter-spacing: 0.03em; word-spacing: -0.65em; }
+.stakecard__mined { color: var(--lime); }
+
+@media (max-width: 760px) {
+  .lockpick { grid-template-columns: 1fr 1fr; }
+  .stakecard { grid-template-columns: 72px 1fr; gap: 14px; }
+  .stakecard__art { width: 72px; height: 72px; }
+  .stakecard__stats { grid-column: 1 / -1; }
+  .stakecard > .btn { grid-column: 1 / -1; width: 100%; }
+}
