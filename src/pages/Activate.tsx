@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { COLLECTION_ADDRESS, COLLECTION_ABI } from "@/lib/collection";
-import { loadOwnedNfts, type NftItem } from "@/lib/collectionNfts";
+import { loadOwnedNfts, loadImages, type NftItem } from "@/lib/collectionNfts";
 import { STAKING_ABI, STAKING_ADDRESS, STAKING_IS_SET, LOCK_DAYS, POINTS_PER_DAY } from "@/lib/stakingContract";
 import { Eyes } from "@/components/ui/Icons";
 import LockPicker from "@/components/staking/LockPicker";
@@ -100,10 +100,10 @@ export default function Activate() {
   const [stakedArt, setStakedArt] = useState<Record<string, string | null>>({});
   const stakedKey = staked.map((x) => x.id).join(",");
   useEffect(() => {
-    if (!stakingOn || stakedKey === "") return;
+    if (!stakingOn || stakedKey === "" || !publicClient) return;
     let stop = false;
-    loadOwnedNfts(publicClient, STAKING_ADDRESS)
-      .then((found) => !stop && setStakedArt(Object.fromEntries(found.map((n) => [n.id, n.image]))))
+    loadImages(publicClient, stakedKey.split(","))
+      .then((art) => !stop && setStakedArt(art))
       .catch(() => {});
     return () => {
       stop = true;
